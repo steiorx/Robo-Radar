@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "expo": "~56.0.9",
+    "@roboapps/shared": "*",
+    "expo": "^56.0.9",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
-    "react-native": "0.85.3",
-    "@roboapps/shared": "*"
+    "react-native": "0.85.3"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

@@ -2,6 +2,7 @@
   "expo": {
     "name": "car-app",
     "slug": "car-app",
+    "scheme": "carapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
