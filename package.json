@@ -8,7 +8,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:car": "cd apps/car-app && npx expo start"
   },
   "workspaces": [
     "apps/*",
@@ -20,7 +21,7 @@
     "@types/events": "^3.0.3",
     "expo-router": "~56.2.9",
     "expo-screen-orientation": "~56.0.5",
-    "react-native-gesture-handler": "~2.31.1",
+    "react-native-gesture-handler": "2.15.0",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",

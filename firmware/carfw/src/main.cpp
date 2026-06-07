@@ -25,7 +25,7 @@ void setup()
       Serial.printf("Received packet from: %s:%d", packet.remoteIP(), packet.remotePort());
       JsonDocument doc;
       deserializeJson(doc, packet.data(), packet.length());
-      
+      Serial.printf("%s", packet.data());
       if (doc["route"] == "light")
         {
           on = !on;
