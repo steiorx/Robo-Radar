@@ -8,69 +8,26 @@ const JOYSTICK_SIZE = 150;
 const KNOB_SIZE = 60;
 const CENTER_OFFSET = JOYSTICK_SIZE / 2;
 
-export function Joystick() {
-  //   const [position] = useState(() => new Animated.ValueXY({ x: 0, y: 0 }));
-  //   const touchID = useRef("");
-  //   let startX: number, startY: number;
+type JoystickProps = {
+  gestureRef?: React.Ref<any>;
+  simultaneousHandlers?: React.Ref<any> | React.Ref<any>[];
+};
 
-  //   const panResponder = React.useRef(
-  //     PanResponder.create({
-  //       onStartShouldSetPanResponder: (evt, gestureState) => gestureState.numberActiveTouches == 1,
-  //       onMoveShouldSetPanResponder: (evt, gestureState) => gestureState.numberActiveTouches == 1,
-  //       onPanResponderGrant: (evt, gestureState) => {
-  //         touchID.current = evt.nativeEvent.identifier;
-
-  //         const { locationX, locationY } = evt.nativeEvent;
-  //         startX = locationX - CENTER_OFFSET;
-  //         startY = locationY - CENTER_OFFSET;
-
-  //         position.setOffset({ x: startX, y: startY });
-  //         position.setValue({ x: 0, y: 0 });
-  //       },
-  //       onPanResponderMove: (evt, gestureState) => {
-  //         if (gestureState.numberActiveTouches > 1) return;
-  //         if (touchID.current != evt.nativeEvent.identifier) return;
-
-  //         const { dx, dy } = gestureState;
-  //         let newX = dx,
-  //           newY = dy;
-  //         const distance = Math.sqrt((newX + startX) ** 2 + (newY + startY) ** 2);
-  //         if (distance > CENTER_OFFSET) {
-  //           const sizeOffset = CENTER_OFFSET / distance;
-  //           newX = (newX + startX) * sizeOffset - startX;
-  //           newY = (newY + startY) * sizeOffset - startY;
-  //         }
-  //         position.setValue({ x: newX, y: newY });
-  //       },
-  //       onPanResponderRelease: (evt) => {
-  //         if (touchID.current != evt.nativeEvent.identifier) return;
-  //         position.flattenOffset();
-  //         Animated.spring(position, {
-  //           toValue: { x: 0, y: 0 },
-  //           useNativeDriver: false,
-  //         }).start();
-  //       },
-  //         onPanResponderTerminate: (evt) => {
-  //         if (touchID.current != evt.nativeEvent.identifier) return;
-  //           position.flattenOffset();
-  //           Animated.spring(position, {
-  //             toValue: { x: 0, y: 0 },
-  //             useNativeDriver: false,
-  //           }).start();
-  //         },
-  //     }),
-  //   ).current;
-
+export function Joystick({ gestureRef, simultaneousHandlers }: JoystickProps) {
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
   return (
     <View style={styles.container}>
       <PanGestureHandler
+        ref={gestureRef}
+        simultaneousHandlers={simultaneousHandlers}
         maxPointers={1}
         onGestureEvent={({ nativeEvent }) => {
-            console.log(translateX, translateY, nativeEvent.translationX, nativeEvent.translationY)
-          const distance = Math.sqrt(Number(nativeEvent.translationX) ** 2 + Number(nativeEvent.translationY) ** 2);
+          const distance = Math.sqrt(
+            Number(nativeEvent.translationX) ** 2 +
+              Number(nativeEvent.translationY) ** 2,
+          );
           let sizeOffset = CENTER_OFFSET / distance;
           if (sizeOffset > 1) sizeOffset = 1;
           translateX.setValue(nativeEvent.translationX * sizeOffset);
@@ -110,6 +67,7 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     left: "8%",
     bottom: "8%",
+    position: "absolute",
   },
   knob: {
     width: KNOB_SIZE,

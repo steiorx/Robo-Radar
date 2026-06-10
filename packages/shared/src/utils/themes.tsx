@@ -10,3 +10,7 @@ export const MainTheme = StyleSheet.create({
         color: 'black'
     }
 })
+
+export const colors = {
+    main: 'black'
+}
