@@ -6,6 +6,7 @@ import { Joystick } from "../components/Joystick";
 import { StyleSheet } from "react-native";
 import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
+import Battery from "../components/Battery";
 
 export function ControllerScreen() {
   const joystickGestureRef = useRef(null);
@@ -27,6 +28,7 @@ export function ControllerScreen() {
           gestureRef={brakerGestureRef}
           simultaneousHandlers={[joystickGestureRef, acceleratorGestureRef]}
         />
+        <Battery />
       </GestureHandlerRootView>
     </View>
   );
