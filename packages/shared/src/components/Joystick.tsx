@@ -11,9 +11,10 @@ const CENTER_OFFSET = JOYSTICK_SIZE / 2;
 type JoystickProps = {
   gestureRef?: React.Ref<any>;
   simultaneousHandlers?: React.Ref<any> | React.Ref<any>[];
+  changeDirection: (moveX: number, moveY: number) => void;
 };
 
-export function Joystick({ gestureRef, simultaneousHandlers }: JoystickProps) {
+export function Joystick({ gestureRef, simultaneousHandlers, changeDirection }: JoystickProps) {
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
@@ -30,10 +31,14 @@ export function Joystick({ gestureRef, simultaneousHandlers }: JoystickProps) {
           );
           let sizeOffset = CENTER_OFFSET / distance;
           if (sizeOffset > 1) sizeOffset = 1;
-          translateX.setValue(nativeEvent.translationX * sizeOffset);
-          translateY.setValue(nativeEvent.translationY * sizeOffset);
+          const newTranslateX = nativeEvent.translationX * sizeOffset;
+          const newTranslateY = nativeEvent.translationY * sizeOffset;
+          translateX.setValue(newTranslateX);
+          translateY.setValue(newTranslateY);
+          changeDirection(newTranslateX / distance, newTranslateY / distance);
         }}
         onHandlerStateChange={({ nativeEvent }) => {
+          changeDirection(0, 0);
           if (nativeEvent.state === 5 /* END */) {
             Animated.parallel([
               Animated.spring(translateX, {

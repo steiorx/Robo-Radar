@@ -6,11 +6,13 @@ import StepInteractorBase from "./StepInteractorBase";
 type Props = {
   gestureRef?: React.Ref<any>;
   simultaneousHandlers?: React.Ref<any> | React.Ref<any>[];
+  changeAccelerateState: (accelerate: number) => void;
 };
 
 export default function Braker({
   gestureRef,
   simultaneousHandlers,
+  changeAccelerateState
 }: Props) {
   const [heightRatio, setHeightRatio] = useState(1.0);
 
@@ -19,6 +21,12 @@ export default function Braker({
       setHeightRatio={setHeightRatio}
       gestureRef={gestureRef}
       simultaneousHandlers={simultaneousHandlers}
+      onPressBegin={() => {
+        changeAccelerateState(-1);
+      }}
+      onPressEnd={() => {
+        changeAccelerateState(0);
+      }}
       style={styles.container}
     >
       <BrakerSvg

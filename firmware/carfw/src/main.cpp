@@ -7,6 +7,8 @@ const char *ssid = "ESP32_SI";
 const int ledPin = LED_BUILTIN;
 
 bool on = 0;
+int accelerateFactor = 0;
+short lightLevel = 0;
 
 AsyncUDP udp;
 
@@ -16,10 +18,11 @@ void setup()
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid);
   pinMode(ledPin, OUTPUT);
+  pinMode(21, OUTPUT);
   if (udp.listen(1234))
   {
     Serial.print("Listening on IP: ");
-    Serial.println(WiFi.localIP());
+    Serial.println(WiFi.softAPIP());
     udp.onPacket([](AsyncUDPPacket packet)
                  {
       Serial.printf("Received packet from: %s:%d", packet.remoteIP(), packet.remotePort());
@@ -33,9 +36,9 @@ void setup()
         }
       
 
-      if (doc["route"] == "speed")
+      if (doc["route"] == "move")
       {
-        float newSpeed = doc["speed"];
+        accelerateFactor = doc["accelerate"];
       }
 
       packet.print("Received package"); });
@@ -44,5 +47,9 @@ void setup()
 
 void loop()
 {
-  
+  lightLevel += accelerateFactor;
+  if (lightLevel < 0) lightLevel = 0;
+  if (lightLevel > 255) lightLevel = 255;
+  analogWrite(21, lightLevel);
+  delay(50);
 }

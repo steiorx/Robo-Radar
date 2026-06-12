@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { createRef, useRef } from "react";
 import { View, Text, Button } from "react-native";
 import { MainTheme } from "../utils/themes";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -8,25 +8,61 @@ import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
 import Battery from "../components/Battery";
 
-export function ControllerScreen() {
+type MoveData = {
+  moveX: number;
+  moveY: number;
+  accelerate: number;
+}
+
+type Props = {
+  sendToController: (data: string, force: boolean) => void;
+}
+
+export function ControllerScreen({sendToController}: Props) {
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
+  const moveData = useRef<MoveData>({
+    moveX: 0.0,
+    moveY: 0.0,
+    accelerate: 0
+  });
 
+  function sendMoveData(force: boolean) {
+    sendToController(JSON.stringify({
+      route: "move",
+      ...moveData.current
+    }), force)
+  }
+
+  function changeDirection (moveX: number, moveY: number) {
+    moveData.current.moveX = moveX;
+    moveData.current.moveY = moveY;
+    sendMoveData(false);
+  }
+
+  function changeAccelerateState (accelerate: number) {
+    moveData.current.accelerate = accelerate;
+    sendMoveData(true);
+  } 
+  
   return (
     <View style={styles.container}>
       <GestureHandlerRootView style={styles.container}>
         <Joystick
           gestureRef={joystickGestureRef}
           simultaneousHandlers={[acceleratorGestureRef, brakerGestureRef]}
+          changeDirection={changeDirection}
         />
         <Accelerator
           gestureRef={acceleratorGestureRef}
           simultaneousHandlers={[joystickGestureRef, brakerGestureRef]}
+          changeAccelerateState={changeAccelerateState}
         />
         <Braker 
           gestureRef={brakerGestureRef}
           simultaneousHandlers={[joystickGestureRef, acceleratorGestureRef]}
+          changeAccelerateState={changeAccelerateState}
         />
         <Battery />
       </GestureHandlerRootView>

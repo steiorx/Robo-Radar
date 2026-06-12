@@ -6,6 +6,8 @@ type Props = {
   children: React.JSX.Element;
   gestureRef?: React.Ref<any>;
   simultaneousHandlers?: React.Ref<any> | React.Ref<any>[];
+  onPressBegin: () => void;
+  onPressEnd: () => void;
   setHeightRatio: (ratio: number) => void;
   style: ViewStyle;
 }
@@ -23,6 +25,7 @@ export default function StepInteractorBase(props: Props)
             onHandlerStateChange={({ nativeEvent }) => {
               if (nativeEvent.state === State.ACTIVE) {
                 props.setHeightRatio(0.9);
+                props.onPressBegin();
               }
               if (
                 nativeEvent.state === State.END ||
@@ -30,6 +33,7 @@ export default function StepInteractorBase(props: Props)
                 nativeEvent.state === State.FAILED
               ) {
                 props.setHeightRatio(1.0);
+                props.onPressEnd();
               }
             }}
           >
