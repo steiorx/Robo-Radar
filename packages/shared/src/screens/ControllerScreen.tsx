@@ -7,18 +7,14 @@ import { StyleSheet } from "react-native";
 import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
 import Battery from "../components/Battery";
-
-type MoveData = {
-  moveX: number;
-  moveY: number;
-  accelerate: number;
-}
+import { MoveData } from "@shared/utils/Structures";
 
 type Props = {
   sendToController: (data: string, force: boolean) => void;
+  connected: boolean;
 }
 
-export function ControllerScreen({sendToController}: Props) {
+export function ControllerScreen({sendToController, connected}: Props) {
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
@@ -32,7 +28,7 @@ export function ControllerScreen({sendToController}: Props) {
     sendToController(JSON.stringify({
       route: "move",
       ...moveData.current
-    }), force)
+    }), force);
   }
 
   function changeDirection (moveX: number, moveY: number) {
@@ -47,7 +43,7 @@ export function ControllerScreen({sendToController}: Props) {
   } 
   
   return (
-    <View style={styles.container}>
+    <View style={{...styles.container, backgroundColor: connected ? 'blue': 'pink'}}>
       <GestureHandlerRootView style={styles.container}>
         <Joystick
           gestureRef={joystickGestureRef}
@@ -74,4 +70,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
 });
