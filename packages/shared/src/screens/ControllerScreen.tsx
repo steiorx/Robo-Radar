@@ -11,10 +11,9 @@ import { MoveData } from "@shared/utils/Structures";
 
 type Props = {
   sendToController: (data: string, force: boolean) => void;
-  connected: boolean;
 }
 
-export function ControllerScreen({sendToController, connected}: Props) {
+export function ControllerScreen({sendToController}: Props) {
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
@@ -31,10 +30,10 @@ export function ControllerScreen({sendToController, connected}: Props) {
     }), force);
   }
 
-  function changeDirection (moveX: number, moveY: number) {
+  async function changeDirection (moveX: number, moveY: number, force: boolean = false) {
     moveData.current.moveX = moveX;
     moveData.current.moveY = moveY;
-    sendMoveData(false);
+    sendMoveData(force);
   }
 
   function changeAccelerateState (accelerate: number) {
@@ -43,7 +42,7 @@ export function ControllerScreen({sendToController, connected}: Props) {
   } 
   
   return (
-    <View style={{...styles.container, backgroundColor: connected ? 'blue': 'pink'}}>
+    <View style={{...styles.container}}>
       <GestureHandlerRootView style={styles.container}>
         <Joystick
           gestureRef={joystickGestureRef}
