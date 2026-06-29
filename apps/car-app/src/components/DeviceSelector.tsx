@@ -1,6 +1,4 @@
-import { Button, Column, Host } from "@expo/ui";
-import MenuView, { MenuAction } from "@expo/ui/community/menu";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { Link, useRouter } from "expo-router";
 import {
@@ -10,21 +8,47 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
+  AppState,
 } from "react-native";
-
-// function WaitingCard() {}
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Animated from "react-native-reanimated";
 
 export default function DeviceSelector() {
-  const [deviceList, setDeviceList] = useState<Peripheral[]>([]);
   const [device, setDevice] = useState<Peripheral>();
   const [bleTarget, setBleTarget] = useState<{
     service: string;
     char: string;
   }>();
+  const [deviceName, setDeviceName] = useState("ESP32");
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const shouldSave = useRef(false);
 
   const router = useRouter();
 
   useEffect(() => {
+    // Get stored device name
+    AsyncStorage.getItem("deviceName")
+      .then((value) => {
+        if (value) setDeviceName(value);
+      })
+      .catch((reason) => {
+        AsyncStorage.setItem("deviceName", deviceName);
+      });
+
+    // Listen for app getting out of focus
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      console.log("App state changed");
+      if (
+        (nextAppState === "background" || nextAppState === "inactive") &&
+        shouldSave.current &&
+        deviceName
+      ) {
+        handleSave();
+      }
+    });
+
     if (device) BleManager.disconnect(device?.id);
     setDevice(undefined);
     BleManager.start({ showAlert: false });
@@ -39,14 +63,11 @@ export default function DeviceSelector() {
 
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
-        if (
-          (peripheral.name || peripheral.advertising.localName)?.includes(
-            "ESP",
-          ) &&
-          !deviceList.some((d) => d.id == peripheral.id)
-        ) {
+        if (peripheral.name?.includes(deviceName)) {
           if (peripheral.advertising.serviceUUIDs?.length !== 0) {
-            setDeviceList([...deviceList, peripheral]);
+            handleConnect(peripheral);
+            BleManager.stopScan();
+            setIsScanning(false);
           } else return;
         }
       },
@@ -61,23 +82,21 @@ export default function DeviceSelector() {
     const disconnectListener = BleManager.onDisconnectPeripheral(() => {
       console.log("Disconnected");
       setDevice(undefined);
-      setDeviceList([]);
       handleScan();
-      router.dismissAll();
+      if (router.canDismiss()) router.dismissAll();
     });
-
-    handleScan();
 
     return () => {
       discoverListener.remove();
       updateListener.remove();
       disconnectListener.remove();
+      subscription.remove();
     };
   }, []);
 
   const handleScan = async () => {
+    setIsScanning(true);
     BleManager.stopScan();
-    setDeviceList([]);
     setDevice(undefined);
     await BleManager.scan({
       seconds: 5,
@@ -86,11 +105,14 @@ export default function DeviceSelector() {
       scanMode: 2,
       matchMode: 1,
     });
-    console.log("Started scan");
+    setTimeout(() => {
+      setIsScanning(false);
+    }, 5000);
   };
 
   const handleConnect = async (targetDevice: Peripheral) => {
     try {
+      setIsConnecting(true);
       if (device) BleManager.disconnect(device.id);
       setDevice(undefined);
       await BleManager.stopScan();
@@ -113,7 +135,7 @@ export default function DeviceSelector() {
         return;
       }
 
-      console.log(info.characteristics);
+      // Find the correct characteristic
       const target = info.characteristics.find((c) => {
         const uuid = c.characteristic.toLowerCase();
         const hasWrite =
@@ -156,55 +178,167 @@ export default function DeviceSelector() {
     } catch (err) {
       console.error(err);
     }
+    setIsConnecting(false);
   };
+
+  const handleDisconnect = async (targetDevice: Peripheral) => {
+    await BleManager.disconnect(targetDevice.id).then((value) => console.log("Disconnected", value));
+    setDevice(undefined);
+  };
+
+  // Saves deviceName to storage when user exits app
+  const handleSave = () => {
+    AsyncStorage.setItem("deviceName", deviceName);
+  };
+
+  const [overlay, setOverlay] = useState(false);
+
+  function getBGColor() {
+    if (!!device) 
+    {
+      return "#3bff1d"
+    } else if (isScanning) {
+      return "#8adcff"
+    } else {
+      if (isConnecting) {
+        return "#ffb428"
+      } 
+      else return "#13b8ff"
+    }
+  }
+
+  function getStateText() {
+    if (!!device) 
+    {
+      return "Control"
+    } else if (isScanning) {
+      return "Scanning..."
+    } else {
+      if (isConnecting) {
+        return "Connecting..."
+      } 
+      else return "Scan"
+    }
+  }
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.devicesContainer}>
-        {deviceList.length > 0 ? (
-          // Does not need filter because handleScan already filters the names
-          deviceList.map((p) => {
-            return (
-              <Pressable
-                key={p.id}
-                style={{
-                  ...styles.deviceContainer,
-                  backgroundColor:
-                    device?.id === p.id ? "#00c82b" : "#00000000",
-                }}
-                onPress={() => handleConnect(p)}
-              >
-                <Text>{p.name}</Text>
-              </Pressable>
-            );
-          })
-        ) : (
-          <Text>Looking for devices...</Text>
-        )}
-      </ScrollView>
-      {/* TODO: Animate color transitions */}
-      
-      <Pressable
+      <TextInput
+        style={styles.deviceNameContainer}
+        defaultValue={deviceName}
+        value={deviceName}
+        onChangeText={(value) => {
+          console.log(value, deviceName);
+          if (isScanning) {
+            BleManager.stopScan();
+            setIsScanning(false);
+          }
+          if (!!device) {
+            handleDisconnect(device);
+          }
+          setDeviceName(value);
+          shouldSave.current = true;
+        }}
+        // editable={!isScanning}
+      />
+      <Animated.View
         style={{
           ...styles.connectContainer,
-          backgroundColor: !!device ? "#41a3ff" : "rgb(159, 159, 223)",
-        }}
-        onPress={() => {
-          if (!!device) {
-            router.navigate({pathname: './Controller', params: {
-              deviceID: device.id,
-              service: bleTarget?.service,
-              char: bleTarget?.char
-            }})
-          } else handleScan();
+          backgroundColor: getBGColor(),
+          transitionProperty: 'backgroundColor',
+          transitionDuration: '300ms',
+          transitionBehavior: 'allow-discrete',
+          transitionTimingFunction: 'ease-in-out'
         }}
       >
-        <Text style={styles.connectScanText}>
-          {!!device ? "Go to Controller" : "SCAN"}
-        </Text>
-      </Pressable>
+        <Pressable
+          style={styles.connectPressable}
+          onPress={async () => {
+            if (!!device) {
+              router.navigate({
+                pathname: "./Controller",
+                params: {
+                  deviceID: device.id,
+                  service: bleTarget?.service,
+                  char: bleTarget?.char,
+                },
+              });
+            } else if (!isScanning) handleScan();
+          }}
+        >
+          <Text style={styles.connectScanText}>
+            {getStateText()}
+          </Text>
+        </Pressable>
+      </Animated.View>
     </View>
+
+    // <View style={styles.container}>
+    //   <Pressable style={{...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', backgroundColor: 'blue'}} onPress={() => setOverlay(true)}>
+    //     <Text style={{color: 'white'}}>Open Overlay</Text>
+    //   </Pressable>
+
+    //   {overlay && (
+    //     <View style={{backgroundColor: 'red', position: 'absolute', top: '-10%'}}>
+    //       <Pressable onPress={() => setOverlay(false)}>
+    //         <Text>Close</Text>
+    //       </Pressable>
+    //     </View>
+    //   )}
+    // </View>
   );
+
+  // return (
+  //   <View style={styles.container}>
+  //     <ScrollView style={styles.devicesContainer}>
+  //       {deviceList.length > 0 ? (
+  //         // Does not need filter because handleScan already filters the names
+  //         deviceList.map((p) => {
+  //           // TODO: Add battery perchance
+  //           // TODO: Add PIN perchance
+
+  //           // TODO + REMAKE: Remove list and look for built-in name
+  //           return (
+  //             <Pressable
+  //               key={p.id}
+  //               style={{
+  //                 ...styles.deviceContainer,
+  //                 backgroundColor:
+  //                   device?.id === p.id ? "#00c82b" : "#00000000",
+  //               }}
+  //               onPress={() => handleConnect(p)}
+  //             >
+  //               <Text>{p.name}</Text>
+  //             </Pressable>
+  //           );
+  //         })
+  //       ) : (
+  //         <Text>Looking for devices...</Text>
+  //       )}
+  //     </ScrollView>
+  //     {/* TODO: Animate color transitions */}
+
+  //     <Pressable
+  //       style={{
+  //         ...styles.connectContainer,
+  //         backgroundColor: !!device ? "#41a3ff" : "rgb(159, 159, 223)",
+  //       }}
+  //       onPress={() => {
+  //         if (!!device) {
+  //           router.navigate({pathname: './Controller', params: {
+  //             deviceID: device.id,
+  //             service: bleTarget?.service,
+  //             char: bleTarget?.char
+  //           }})
+  //         } else handleScan();
+  //       }}
+  //     >
+  //       <Text style={styles.connectScanText}>
+  //         {!!device ? "Go to Controller" : "SCAN"}
+  //       </Text>
+  //     </Pressable>
+  //   </View>
+  // );
 }
 
 const styles = StyleSheet.create({
@@ -216,20 +350,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  devicesContainer: {
+  deviceNameContainer: {
+    height: "15%",
     width: "100%",
-
-    borderColor: "gray",
-    borderRadius: 5,
-    borderWidth: 2,
-    padding: 10,
-  },
-  // A View for each device
-  deviceContainer: {
-    // flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    height: 30,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#999999",
+    textAlign: "center",
   },
   connectContainer: {
     height: "20%",
@@ -241,11 +368,18 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { height: 2, width: 2 },
     elevation: 6,
-    borderRadius: 5,
+    backgroundColor: "white",
+    borderRadius: 10,
+    
+  },
+  connectPressable: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
   },
   connectScanText: {
     fontWeight: 600,
     fontSize: 30,
-    color: 'black'
-  }
+    color: "white",
+  },
 });

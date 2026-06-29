@@ -1,7 +1,6 @@
-import { NativeModules, Text, View, PermissionsAndroid } from "react-native";
 import { ControllerScreen, MainTheme } from "@roboapps/shared";
 import { useLocalSearchParams } from "expo-router";
-import { useRef, useEffect, useState } from "react";
+import { useRef } from "react";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { MoveData, toBT } from "@roboapps/shared";
 
