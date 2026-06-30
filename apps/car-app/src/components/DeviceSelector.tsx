@@ -20,7 +20,7 @@ export default function DeviceSelector() {
     service: string;
     char: string;
   }>();
-  const [deviceName, setDeviceName] = useState("ESP32");
+  const [deviceName, setDeviceName] = useState<string>();
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const shouldSave = useRef(false);
@@ -32,22 +32,12 @@ export default function DeviceSelector() {
     AsyncStorage.getItem("deviceName")
       .then((value) => {
         if (value) setDeviceName(value);
+        console.log("Fetched deviceName:", value);
       })
       .catch((reason) => {
-        AsyncStorage.setItem("deviceName", deviceName);
+        AsyncStorage.setItem("deviceName", "ESP32");
+        console.log("Created new value for deviceName");
       });
-
-    // Listen for app getting out of focus
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      console.log("App state changed");
-      if (
-        (nextAppState === "background" || nextAppState === "inactive") &&
-        shouldSave.current &&
-        deviceName
-      ) {
-        handleSave();
-      }
-    });
 
     if (device) BleManager.disconnect(device?.id);
     setDevice(undefined);
@@ -63,6 +53,7 @@ export default function DeviceSelector() {
 
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
+        if (!deviceName) return;
         if (peripheral.name?.includes(deviceName)) {
           if (peripheral.advertising.serviceUUIDs?.length !== 0) {
             handleConnect(peripheral);
@@ -82,7 +73,6 @@ export default function DeviceSelector() {
     const disconnectListener = BleManager.onDisconnectPeripheral(() => {
       console.log("Disconnected");
       setDevice(undefined);
-      handleScan();
       if (router.canDismiss()) router.dismissAll();
     });
 
@@ -90,7 +80,6 @@ export default function DeviceSelector() {
       discoverListener.remove();
       updateListener.remove();
       disconnectListener.remove();
-      subscription.remove();
     };
   }, []);
 
@@ -98,7 +87,7 @@ export default function DeviceSelector() {
     setIsScanning(true);
     BleManager.stopScan();
     setDevice(undefined);
-    await BleManager.scan({
+    BleManager.scan({
       seconds: 5,
       serviceUUIDs: [],
       allowDuplicates: true,
@@ -107,6 +96,7 @@ export default function DeviceSelector() {
     });
     setTimeout(() => {
       setIsScanning(false);
+      console.log("Stop scan");
     }, 5000);
   };
 
@@ -187,8 +177,14 @@ export default function DeviceSelector() {
   };
 
   // Saves deviceName to storage when user exits app
-  const handleSave = () => {
-    AsyncStorage.setItem("deviceName", deviceName);
+  async function handleSave(deviceName: string) {
+    if (!deviceName || !shouldSave.current) return;
+    console.log("Saving:", deviceName)
+    await AsyncStorage.setItem("deviceName", deviceName)
+      .then((value) => {
+        console.log("Saved successfully");
+        shouldSave.current = false;
+      }, (reason) => console.log("Didnt work bc ", reason));
   };
 
   const [overlay, setOverlay] = useState(false);
@@ -227,18 +223,28 @@ export default function DeviceSelector() {
         style={styles.deviceNameContainer}
         defaultValue={deviceName}
         value={deviceName}
-        onChangeText={(value) => {
+        onChangeText={async (value) => {
           console.log(value, deviceName);
           if (isScanning) {
             BleManager.stopScan();
             setIsScanning(false);
           }
           if (!!device) {
-            handleDisconnect(device);
+            await handleDisconnect(device);
           }
+          if (value.endsWith(' ')) value.slice(0, value.length - 1);
           setDeviceName(value);
           shouldSave.current = true;
         }}
+        onEndEditing={() => {
+          if (!deviceName) return;
+          let deviceReal = deviceName
+          if (deviceReal.endsWith(' ')) {
+            deviceReal = deviceReal.slice(0, deviceReal.length - 1);
+            setDeviceName(deviceReal)
+          }
+          handleSave(deviceReal);
+          }}
         // editable={!isScanning}
       />
       <Animated.View
@@ -357,6 +363,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#999999",
     textAlign: "center",
+    color: "black"
   },
   connectContainer: {
     height: "20%",
