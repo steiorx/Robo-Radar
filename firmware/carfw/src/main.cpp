@@ -25,10 +25,11 @@ class MyServerCallbacks : public NimBLEServerCallbacks
     pServer->updateConnParams(connInfo.getConnHandle(), 6, 12, 0, 200);
     Serial.println("Connected");
   }
-  void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo& connInfo) 
+  void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo& connInfo, int reason) 
   {
     deviceConnected = false;
     pServer->startAdvertising();
+    Serial.println("Disconnected");
   }
 };
 
@@ -72,12 +73,10 @@ void setup()
   advData.setFlags(BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP);
   
   // FORCE THE NAME into the primary payload packet
-  advData.setName("ESP32-RIG-1"); // Keep it short to fit the 31-byte limit!
+  advData.setName("ESP32-RIG-1"); 
   
-  // Optional: Add your service UUID if there is space left
   advData.addServiceUUID(SERVICE_UUID);
 
-  // 3. Hand the raw payload to the advertising interface
   NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->setAdvertisementData(advData);
   
@@ -93,11 +92,5 @@ void setup()
 
 void loop()
 {
-  // lightLevel += accelerateFactor;
-  // if (lightLevel < 0)
-  //   lightLevel = 0;
-  // if (lightLevel > 255)
-  //   lightLevel = 255;
-  // analogWrite(21, lightLevelX);
-  // delay(100);
+  
 }
