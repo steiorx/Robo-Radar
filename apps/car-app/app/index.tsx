@@ -1,20 +1,11 @@
-import { Link } from "expo-router";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { MainTheme } from "@roboapps/shared";
-import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import DeviceSelector from "../src/components/DeviceSelector";
+import "../global.css";
 
 export default function HomeScreen() {
   return (
-    <View style={MainTheme.centerContent}>
+    <View className="flex items-center justify-center h-full">
       <DeviceSelector />
-
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  ipInputContainer: {
-    
-  }
-})
