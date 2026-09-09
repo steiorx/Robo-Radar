@@ -1,9 +1,7 @@
-import React, { createRef, useRef } from "react";
-import { View, Text, Button } from "react-native";
-import { MainTheme } from "../utils/themes";
+import React, { useRef } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Joystick } from "../components/Joystick";
-import { StyleSheet } from "react-native";
 import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
 import Battery from "../components/Battery";
@@ -42,8 +40,8 @@ export function ControllerScreen({sendToController}: Props) {
   } 
   
   return (
-    <View style={{...styles.container}}>
-      <GestureHandlerRootView style={styles.container}>
+    <View className="size-full">
+      <GestureHandlerRootView className="size-full">
         <Joystick
           gestureRef={joystickGestureRef}
           simultaneousHandlers={[acceleratorGestureRef, brakerGestureRef]}
@@ -64,10 +62,3 @@ export function ControllerScreen({sendToController}: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-});

@@ -12,7 +12,7 @@ type Props = {
 export default function Accelerator({
   gestureRef,
   simultaneousHandlers,
-  changeAccelerateState
+  changeAccelerateState,
 }: Props) {
   const [heightRatio, setHeightRatio] = useState(1.0);
 
@@ -28,6 +28,7 @@ export default function Accelerator({
         changeAccelerateState(0);
       }}
       style={styles.container}
+      className="absolute"
     >
       <AcceleratorSvg
         style={styles.image}
@@ -44,6 +45,7 @@ const styles = StyleSheet.create({
     right: "10%",
     bottom: "10%",
     borderRadius: 16,
+    position: 'absolute'
   },
   image: {
     width: 100,

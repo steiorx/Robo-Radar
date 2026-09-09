@@ -27,6 +27,11 @@ export default function Controller() {
     ).then(() => console.log("Sent"));
   };
 
+  /**
+   * 
+   * @param data Data to be sent to controller
+   * @param force Whether to override the timeout and send the data right away. You should only use this for passive actions like braking.
+   */
   function sendToController(data: string, force: boolean) {
     if (!shouldSend.current && !force) return;
 

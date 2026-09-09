@@ -1,12 +1,9 @@
-// components/Joystick.tsx
-import React, { useRef } from "react";
+import React from "react";
 import { View } from "react-native";
 import { StyleSheet } from "react-native";
 import {
-  Gesture,
   GestureDetector,
   GestureStateManager,
-  PanGestureHandler,
   usePanGesture,
 } from "react-native-gesture-handler";
 import Animated, {
@@ -76,7 +73,7 @@ export function Joystick({ changeDirection }: JoystickProps) {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} className="justify-center items-center absolute">
       <GestureDetector gesture={joystickGesture}>
         <Animated.View style={[styles.knob, animatedStyle]} />
       </GestureDetector>
@@ -126,13 +123,10 @@ const styles = StyleSheet.create({
     width: JOYSTICK_SIZE,
     height: JOYSTICK_SIZE,
     borderRadius: JOYSTICK_SIZE / 2,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: "#ddd",
-    marginTop: "auto",
     left: "8%",
     bottom: "8%",
-    position: "absolute",
+    position: 'absolute'
   },
   knob: {
     width: KNOB_SIZE,

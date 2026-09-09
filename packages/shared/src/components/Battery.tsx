@@ -29,7 +29,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 110,
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    position: 'absolute'
   },
   outline: {
     borderColor: "black",

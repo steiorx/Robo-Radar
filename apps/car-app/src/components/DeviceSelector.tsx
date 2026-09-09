@@ -219,7 +219,6 @@ export default function DeviceSelector() {
         defaultValue={deviceName}
         value={deviceName}
         onChangeText={async (value) => {
-          console.log(value, deviceName);
           if (isScanning) {
             BleManager.stopScan();
             setIsScanning(false);

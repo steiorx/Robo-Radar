@@ -43,7 +43,8 @@ const styles = StyleSheet.create({
   container: {
     right: "25%",
     bottom: "10%",
-    borderRadius: 20
+    borderRadius: 20,
+    position: 'absolute'
   },
   image: {
     width: 170,
