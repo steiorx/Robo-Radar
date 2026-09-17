@@ -6,7 +6,7 @@
     "../../declarations.d.ts",
     "./nativewind-env.d.ts",
     "nativewind-env.d.ts"
-  ],
+, "app.config.ts"  ],
   "compilerOptions": {
     "strict": true
   }

@@ -1,0 +1,14 @@
+# EAS runs from the monorepo root and builds the app's native project on Linux.
+# Exclude host-generated native output and dependencies from every workspace.
+node_modules/
+apps/*/android/
+apps/*/ios/
+firmware/
+carfw/
+**/.pio/
+.expo/
+apps/*/.expo/
+dist/
+web-build/
+*.tsbuildinfo
+.env*.local

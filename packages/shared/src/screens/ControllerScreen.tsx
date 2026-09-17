@@ -6,45 +6,46 @@ import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
 import Battery from "../components/Battery";
 import { MoveData } from "@shared/utils/Structures";
+import SteeringWheel from "../components/SteeringWheel";
+import SpeedCounter from "../components/SpeedCounter";
 
 type Props = {
-  sendToController: (data: string, force: boolean) => void;
+  sendToController: (data: MoveData, force: boolean) => void;
+  speed: number;
 }
 
-export function ControllerScreen({sendToController}: Props) {
+export function ControllerScreen({sendToController, speed}: Props) {
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
-  const moveData = useRef<MoveData>({
-    moveX: 0.0,
-    moveY: 0.0,
-    accelerate: 0
-  });
-
-  function sendMoveData(force: boolean) {
-    sendToController(JSON.stringify({
-      route: "move",
-      ...moveData.current
-    }), force);
-  }
-
-  async function changeDirection (moveX: number, moveY: number, force: boolean = false) {
-    moveData.current.moveX = moveX;
-    moveData.current.moveY = moveY;
-    sendMoveData(force);
+  const lastDirection = useRef<number>(0);
+  
+  function changeDirection (direction: number, force: boolean = false) {
+    direction = Math.round(direction);
+    if (lastDirection.current === direction) return;
+    sendToController({
+      id: 2,
+      value: direction
+    }, force);
+    lastDirection.current = direction;
   }
 
   function changeAccelerateState (accelerate: number) {
-    moveData.current.accelerate = accelerate;
-    sendMoveData(true);
+    sendToController({
+      id: 1,
+      value: accelerate
+    }, true);
   } 
   
   return (
     <View className="size-full">
       <GestureHandlerRootView className="size-full">
-        <Joystick
+        {/* <Joystick
           gestureRef={joystickGestureRef}
           simultaneousHandlers={[acceleratorGestureRef, brakerGestureRef]}
+          changeDirection={changeDirection}
+        /> */}
+        <SteeringWheel 
           changeDirection={changeDirection}
         />
         <Accelerator
@@ -58,6 +59,7 @@ export function ControllerScreen({sendToController}: Props) {
           changeAccelerateState={changeAccelerateState}
         />
         <Battery />
+        <SpeedCounter speed={speed} />
       </GestureHandlerRootView>
     </View>
   );

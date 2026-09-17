@@ -1,6 +1,6 @@
-import { ControllerScreen, MainTheme } from "@roboapps/shared";
+import { ControllerScreen, fromBT, MainTheme } from "@roboapps/shared";
 import { useLocalSearchParams } from "expo-router";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { MoveData, toBT } from "@roboapps/shared";
 
@@ -10,9 +10,9 @@ export default function Controller() {
     service: string,
     char: string
   }>();
-  console.log(deviceID, service, char);
   const shouldSend = useRef<boolean>(true);
-
+  const [speed, setSpeed] = useState<number>(0);
+  
   let list: Peripheral[] = [];
 
   const handleSend = async (data: ArrayBuffer) => {
@@ -27,31 +27,44 @@ export default function Controller() {
     ).then(() => console.log("Sent"));
   };
 
+  useEffect(() => {
+    const updateListener = BleManager.onDidUpdateValueForCharacteristic(
+      ({ value }) => {
+        const data = fromBT(value);
+
+        if (data.id === 5) {
+          setSpeed(data.value);
+        }
+      },
+    );
+
+    return () => {
+      updateListener.remove();
+    }
+  })
+
   /**
    * 
    * @param data Data to be sent to controller
    * @param force Whether to override the timeout and send the data right away. You should only use this for passive actions like braking.
    */
-  function sendToController(data: string, force: boolean) {
+  function sendToController(data: MoveData, force: boolean = false) {
     if (!shouldSend.current && !force) return;
 
-    const json = JSON.parse(data);
     shouldSend.current = false;
 
-    if (json["route"] == "move") {
-      const moveData = json as MoveData;
-      const buffer = toBT(moveData);
-      handleSend(buffer);
-    }
+    const buffer = toBT(data);
+    handleSend(buffer);
 
     setTimeout(() => {
       shouldSend.current = true;
-    }, 50);
+    }, 75);
   }
 
   return (
     <ControllerScreen
       sendToController={sendToController}
+      speed={speed}
     />
   );
 }

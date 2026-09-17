@@ -1,17 +1,34 @@
 export type MoveData = {
-  moveX: number;
-  moveY: number;
-  accelerate: number;
+  /**
+   * 1 - acceleration change
+   * 2 - direction change
+   * 3 - max speed change
+   * 4 - battery change?
+   */
+  id: number;
+  value: number;
 }
 
 export function toBT(data: MoveData)
 {
-  const buffer = new ArrayBuffer(9);
+  const buffer = new ArrayBuffer(3);
   const view = new DataView(buffer);
 
-  view.setFloat32(0, data.moveX, true);
-  view.setFloat32(4, data.moveY, true);
-  view.setInt8(8, data.accelerate);
+  view.setUint8(0, data.id);
+  view.setInt16(1, data.value, true);
 
   return buffer;
+}
+
+export function fromBT(data: number[]) 
+{
+  const buffer = new Uint8Array(data).buffer;
+  const view = new DataView(buffer);
+
+  let res: MoveData = {
+    id: view.getUint8(0),
+    value: view.getInt16(1, true)
+  };
+
+  return res;
 }

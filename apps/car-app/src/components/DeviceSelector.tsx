@@ -25,6 +25,16 @@ export default function DeviceSelector() {
   const router = useRouter();
 
   useEffect(() => {
+    PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    ]).then((perms) => {
+      // console.log(perms["android.permission.BLUETOOTH_SCAN"]);
+    });
+  });
+
+  useEffect(() => {
     // Get stored device name
     AsyncStorage.getItem("deviceName")
       .then((value) => {
@@ -35,35 +45,25 @@ export default function DeviceSelector() {
         AsyncStorage.setItem("deviceName", "ESP32");
         console.log("Created new value for deviceName");
       });
+  })
 
+  useEffect(() => {
     if (device) BleManager.disconnect(device?.id);
     setDevice(undefined);
     BleManager.start({ showAlert: false });
 
-    PermissionsAndroid.requestMultiple([
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-    ]).then((perms) => {
-      // console.log(perms["android.permission.BLUETOOTH_SCAN"]);
-    });
-
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
+        // console.log(peripheral);
         if (!deviceName) return;
         if (peripheral.name?.includes(deviceName)) {
+          console.log("Found?")
           if (peripheral.advertising.serviceUUIDs?.length !== 0) {
             handleConnect(peripheral);
             BleManager.stopScan();
             setIsScanning(false);
           } else return;
         }
-      },
-    );
-
-    const updateListener = BleManager.onDidUpdateValueForCharacteristic(
-      ({ value }) => {
-        console.log("Updated Characteristic");
       },
     );
 
@@ -75,10 +75,9 @@ export default function DeviceSelector() {
 
     return () => {
       discoverListener.remove();
-      updateListener.remove();
       disconnectListener.remove();
     };
-  }, []);
+  }, [deviceName]);
 
   const handleScan = async () => {
     setIsScanning(true);

@@ -13,6 +13,7 @@ export default function RootLayout() {
           options={{
             headerTitle: "Car Controller",
             headerTitleAlign: "center",
+            orientation: "portrait"
           }}
         />
         <Stack.Screen

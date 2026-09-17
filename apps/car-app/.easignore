@@ -1,0 +1,10 @@
+# EAS should generate native projects on the Linux builder.
+# Never upload native output or host-specific CMake state from Windows.
+/android
+/ios
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+.env*.local
