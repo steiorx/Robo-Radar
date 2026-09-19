@@ -1,10 +1,13 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require('nativewind/metro');
+
 const path = require("path");
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
+const { resolver } = config;
 
 config.watchFolders = [
   path.resolve(workspaceRoot, "packages")
@@ -15,4 +18,18 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules")
 ];
 
-module.exports = config;
+config.transformer = {
+  ...config.transformer,
+  babelTransformerPath: require.resolve("react-native-svg-transformer")
+}
+
+config.resolver = {
+    ...resolver,
+    assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
+    sourceExts: [...resolver.sourceExts, "svg"]
+  };
+
+module.exports = withNativeWind(config, {
+  input: "./global.css",
+  configPath: path.resolve(projectRoot, "tailwind.config.js")
+});
