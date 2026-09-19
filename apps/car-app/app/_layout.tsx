@@ -2,10 +2,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import "../global.css";
+import { BluetoothProvider } from "../src/components/bluetooth-context";
 
 export default function RootLayout() {
   return (
-    <React.Fragment>
+    <BluetoothProvider>
       <StatusBar style="inverted" />
       <Stack>
         <Stack.Screen
@@ -13,7 +14,7 @@ export default function RootLayout() {
           options={{
             headerTitle: "Car Controller",
             headerTitleAlign: "center",
-            orientation: "portrait"
+            orientation: "portrait",
           }}
         />
         <Stack.Screen
@@ -25,6 +26,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </React.Fragment>
+    </BluetoothProvider>
   );
 }
