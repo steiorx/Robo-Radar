@@ -5,6 +5,7 @@ const path = require("path");
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
+const sharedRoot = path.resolve(workspaceRoot, "packages/shared/src");
 
 const config = getDefaultConfig(projectRoot);
 const { resolver } = config;
@@ -25,6 +26,18 @@ config.transformer = {
 
 config.resolver = {
     ...resolver,
+    extraNodeModules: {
+      ...resolver.extraNodeModules,
+      "@shared": sharedRoot
+    },
+    resolveRequest: (context, moduleName, platform) => {
+      if (moduleName === "@shared" || moduleName.startsWith("@shared/")) {
+        const relativePath = moduleName === "@shared" ? "" : moduleName.slice("@shared/".length);
+        return context.resolveRequest(context, path.resolve(sharedRoot, relativePath), platform);
+      }
+
+      return context.resolveRequest(context, moduleName, platform);
+    },
     assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
     sourceExts: [...resolver.sourceExts, "svg"]
   };

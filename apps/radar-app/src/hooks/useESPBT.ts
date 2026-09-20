@@ -10,6 +10,7 @@ export default function useESPBT(deviceName: string) {
     service: string;
     char: string;
   }>(null);
+  const [devices, setDevices] = useState<Peripheral[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
@@ -20,27 +21,26 @@ export default function useESPBT(deviceName: string) {
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
     ]);
+    BleManager.start({ showAlert: false });
   }, []);
 
   useEffect(() => {
     if (device.current) BleManager.disconnect(device.current.id);
     device.current = undefined;
-    BleManager.start({ showAlert: false });
 
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
         if (!deviceName) return;
         if (peripheral.name?.includes(deviceName)) {
           if (peripheral.advertising.serviceUUIDs?.length !== 0) {
-            handleConnect(peripheral);
-            BleManager.stopScan();
-            setIsScanning(false);
-          } else return;
+            setDevices([...devices, peripheral]);
+          } 
         }
       },
     );
 
     const disconnectListener = BleManager.onDisconnectPeripheral(() => {
+      // TODO: Remove device from devices and if curr device, dismiss
       console.log("Disconnected");
       device.current = undefined;
       if (router.canDismiss()) router.dismissAll();
@@ -50,12 +50,11 @@ export default function useESPBT(deviceName: string) {
       discoverListener.remove();
       disconnectListener.remove();
     };
-  }, [deviceName]);
+  }, []);
 
   const handleScan = async () => {
     setIsScanning(true);
     BleManager.stopScan();
-    device.current = undefined;
     BleManager.scan({
       seconds: 5,
       serviceUUIDs: [],

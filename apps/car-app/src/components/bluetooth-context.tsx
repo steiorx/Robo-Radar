@@ -11,7 +11,7 @@ import {
 import useESPBT from "../hooks/useESPBT";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BleManager, { Peripheral } from "react-native-ble-manager";
-import { fromBT } from "@shared/index";
+import { fromBT } from "@shared/utils/Structures";
 
 type ContextProps = {
   bluetooth: {
@@ -59,7 +59,7 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
         AsyncStorage.setItem("deviceName", "ESP32");
         console.log("Created new value for deviceName");
       });
-  });
+  }, []);
 
   function setDeviceName(newDeviceName: string) {
     _setDeviceName(newDeviceName);

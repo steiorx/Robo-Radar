@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "car-app",
+    "name": "Car App",
     "slug": "car-app",
     "scheme": "carapp",
     "version": "1.0.0",
@@ -13,9 +13,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/car-app-icon.png"
       },
       "permissions": [
         "android.permission.BLUETOOTH",
