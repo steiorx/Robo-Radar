@@ -4,10 +4,10 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/ui": "^56.0.18",
-    "@react-native-async-storage/async-storage": "^3.1.1",
     "@roboapps/shared": "*",
     "babel-preset-expo": "^56.0.15",
     "expo": "^56.0.9",
+    "expo-build-properties": "~56.0.27",
     "expo-router": "^56.2.9",
     "expo-screen-orientation": "56.0.5",
     "expo-status-bar": "~56.0.4",
@@ -31,8 +31,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "android:development": "cross-env APP_VARIANT=development expo prebuild --clean --platform android && cross-env APP_VARIANT=development expo run:android",
-    "android:preview": "cross-env APP_VARIANT=preview expo prebuild --clean --platform android && cross-env APP_VARIANT=preview expo run:android --variant preview",
-    "android:production": "cross-env APP_VARIANT=production expo prebuild --clean --platform android && cross-env APP_VARIANT=production expo run:android --variant production",
+    "android:preview": "cross-env APP_VARIANT=preview expo prebuild --clean --platform android && cross-env APP_VARIANT=preview expo run:android --variant release --no-bundler",
+    "android:production": "cross-env APP_VARIANT=production expo prebuild --clean --platform android && cross-env APP_VARIANT=production expo run:android --variant release --no-bundler",
     "ios": "expo run:ios",
     "web": "expo start --web"
   },

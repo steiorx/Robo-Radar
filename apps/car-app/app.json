@@ -32,6 +32,16 @@
       "eas": {
         "projectId": "a9f03ffc-f3d7-499d-be61-8e846eb7c95b"
       }
-    }
+    },
+    "plugins": [
+        [
+            "expo-build-properties",
+            {
+                "android": {
+                    "buildArchs": ["armeabi-v7a", "arm64-v8a"]
+                }
+            }
+        ]
+    ]
   }
 }
