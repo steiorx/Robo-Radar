@@ -2,15 +2,14 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { PermissionsAndroid } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
+import { Device, MoveData } from "@shared/types";
+import { toBT } from "@shared/utils/Structures";
+import { options } from "prettier-plugin-tailwindcss";
 
-export default function useESPBT(deviceName: string) {
+export default function useESPBT() {
   // Switch back to useState if not working
-  const device = useRef<Peripheral | undefined>(undefined);
-  const bleTarget = useRef<{
-    service: string;
-    char: string;
-  }>(null);
-  const [devices, setDevices] = useState<Peripheral[]>([]);
+  const device = useRef<Device | undefined>(undefined);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
@@ -25,25 +24,24 @@ export default function useESPBT(deviceName: string) {
   }, []);
 
   useEffect(() => {
-    if (device.current) BleManager.disconnect(device.current.id);
-    device.current = undefined;
-
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
-        if (!deviceName) return;
-        if (peripheral.name?.includes(deviceName)) {
+        if (peripheral.name?.includes("ESP")) {
           if (peripheral.advertising.serviceUUIDs?.length !== 0) {
-            setDevices([...devices, peripheral]);
-          } 
+            handleConnect(peripheral);
+          }
         }
       },
     );
 
-    const disconnectListener = BleManager.onDisconnectPeripheral(() => {
-      // TODO: Remove device from devices and if curr device, dismiss
+    const disconnectListener = BleManager.onDisconnectPeripheral((event) => {
+      // If doesn't work, inspect event.peripheral (it is supposed to be device.id)
+      setDevices(devices.filter((device) => device.peripheral.id != event.peripheral));
       console.log("Disconnected");
-      device.current = undefined;
-      if (router.canDismiss()) router.dismissAll();
+      if (device.current?.peripheral.id == event.peripheral) {
+        device.current = undefined;
+        if (router.canDismiss()) router.dismissAll();
+      }
     });
 
     return () => {
@@ -64,17 +62,16 @@ export default function useESPBT(deviceName: string) {
     });
     setTimeout(() => {
       setIsScanning(false);
-      console.log("Stop scan");
     }, 5000);
   };
 
+  const stopScan = () => {
+    BleManager.stopScan();
+    setIsScanning(false);
+  }
+
   const handleConnect = async (targetDevice: Peripheral) => {
     try {
-      setIsConnecting(true);
-      if (device.current) BleManager.disconnect(device.current.id);
-      device.current = undefined;
-      await BleManager.stopScan();
-      await new Promise((resolve) => setTimeout(resolve, 150));
       await BleManager.connect(targetDevice.id);
       console.log(
         "Connected:",
@@ -118,11 +115,6 @@ export default function useESPBT(deviceName: string) {
       console.log(finalChar, finalService);
 
       if (target) {
-        device.current = targetDevice;
-        bleTarget.current = {
-          service: finalService,
-          char: finalChar,
-        };
         await BleManager.startNotification(
           targetDevice.id,
           finalService,
@@ -132,41 +124,59 @@ export default function useESPBT(deviceName: string) {
         BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
           console.log("Priority given"),
         );
+        setDevices([...devices, {peripheral: targetDevice,  service: finalService, char: finalChar}]);
       }
     } catch (err) {
       console.error(err);
     }
-    setIsConnecting(false);
+  };
+
+  const selectDevice = async (targetDevice: Device) => {
+    device.current = targetDevice;
+
+    const alertRadar: MoveData = {
+      id: 5,
+      value: 69
+    }
+
+    await handleSend(toBT(alertRadar));
+
+    router.navigate({
+      pathname: "./Controller"
+    });
   };
 
   const handleDisconnect = async (targetDevice: Peripheral) => {
     await BleManager.disconnect(targetDevice.id).then((value) =>
       console.log("Disconnected", value),
     );
-    device.current = undefined;
+    setDevices(devices.filter((device) => device.peripheral.id != targetDevice.id));
+    if (device.current?.peripheral.id == targetDevice.id) device.current = undefined;
   };
 
   const handleSend = async (data: ArrayBuffer) => {
-    if (!device.current || !bleTarget.current) return;
+    if (!device.current) return;
     const uintdata = new Uint8Array(data);
     const bytes = Array.from(uintdata);
 
     await BleManager.writeWithoutResponse(
-      device.current.id,
-      bleTarget.current.service,
-      bleTarget.current.char,
+      device.current.peripheral.id,
+      device.current.service,
+      device.current.char,
       bytes,
     );
   };
 
   return {
     device: device.current,
-    bleTarget: bleTarget.current,
-    scanState: { isScanning, setIsScanning },
-    isConnecting,
+    devices,
+    isScanning,
+    isConnecting, // Not doing anything for now
     handleScan,
+    stopScan,
     handleConnect,
     handleDisconnect,
     handleSend,
+    selectDevice
   };
 }

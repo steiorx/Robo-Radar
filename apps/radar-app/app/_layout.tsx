@@ -2,10 +2,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Fragment } from "react";
 import "../global.css";
+import { BluetoothProvider } from "../src/components/bluetooth-context";
 
 export default function RootLayout() {
   return (
-    <Fragment>
+    <BluetoothProvider>
       <StatusBar style="inverted" />
       <Stack>
         <Stack.Screen
@@ -25,6 +26,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </Fragment>
+    </BluetoothProvider>
   );
 }

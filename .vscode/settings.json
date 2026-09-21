@@ -1,5 +1,6 @@
 {
   "js/ts.preferences.autoImportSpecifierExcludeRegexes": [
-    "@expo/ui/build/universal"
+    "@expo/ui/build/universal",
+    "^(.*\\/)?(dist|build|lib|generated|types_generated)(\\/|$)"
   ]
 }

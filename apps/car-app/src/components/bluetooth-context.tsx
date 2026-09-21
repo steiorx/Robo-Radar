@@ -12,20 +12,15 @@ import useESPBT from "../hooks/useESPBT";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { fromBT } from "@shared/utils/Structures";
+import { Device } from "@shared/types";
 
 type ContextProps = {
   bluetooth: {
-    device: Peripheral | undefined;
-    bleTarget: {
-      service: string;
-      char: string;
-    } | null;
-    scanState: {
-      isScanning: boolean;
-      setIsScanning: Dispatch<SetStateAction<boolean>>;
-    };
+    device: Device | undefined;
+    isScanning: boolean;
     isConnecting: boolean;
     handleScan: () => Promise<void>;
+    stopScan: () => void;
     handleConnect: (targetDevice: Peripheral) => Promise<void>;
     handleDisconnect: (targetDevice: Peripheral) => Promise<void>;
     handleSend: (data: ArrayBuffer) => Promise<void>;

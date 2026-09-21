@@ -1,24 +1,43 @@
 import React, { useRef } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { Joystick } from "../components/Joystick";
 import Accelerator from "../components/Accelerator";
 import Braker from "../components/Braker";
 import Battery from "../components/Battery";
-import { MoveData } from "@shared/utils/Structures";
+import { toBT } from "@shared/utils/Structures";
 import SteeringWheel from "../components/SteeringWheel";
 import SpeedCounter from "../components/SpeedCounter";
+import { MoveData } from "@shared/types";
 
 type Props = {
-  sendToController: (data: MoveData, force: boolean) => void;
+  handleSend: (buffer: ArrayBuffer) => Promise<void>;
   speed: number;
 }
 
-export function ControllerScreen({sendToController, speed}: Props) {
+export function ControllerScreen({handleSend, speed}: Props) {
+  const shouldSend = useRef<boolean>(true);
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
   const lastDirection = useRef<number>(0);
+
+  /**
+   *
+   * @param data Data to be sent to controller
+   * @param force Whether to override the timeout and send the data right away. You should only use this for passive actions like braking.
+   */
+  function sendToController(data: MoveData, force: boolean = false) {
+    if (!shouldSend.current && !force) return;
+
+    shouldSend.current = false;
+
+    const buffer = toBT(data);
+    handleSend(buffer);
+
+    setTimeout(() => {
+      shouldSend.current = true;
+    }, 75);
+  }
   
   function changeDirection (direction: number, force: boolean = false) {
     direction = Math.round(direction);

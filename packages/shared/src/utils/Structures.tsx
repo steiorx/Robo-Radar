@@ -1,13 +1,4 @@
-export type MoveData = {
-  /**
-   * 1 - acceleration change
-   * 2 - direction change
-   * 3 - max speed change
-   * 4 - battery change?
-   */
-  id: number;
-  value: number;
-}
+import { MoveData } from "@shared/types";
 
 export function toBT(data: MoveData)
 {

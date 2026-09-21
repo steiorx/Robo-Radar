@@ -10,15 +10,13 @@ import Animated from "react-native-reanimated";
 import { useBluetooth } from "./bluetooth-context";
 
 export default function DeviceSelector() {
-
   const {
     bluetooth: {
       device,
-      bleTarget,
-      scanState: { isScanning, setIsScanning },
+      isScanning,
       isConnecting,
       handleScan,
-      handleConnect,
+      stopScan,
       handleDisconnect,
     },
     deviceName: { deviceName, setDeviceName, handleSave },
@@ -58,11 +56,10 @@ export default function DeviceSelector() {
         value={deviceName}
         onChangeText={async (value) => {
           if (isScanning) {
-            BleManager.stopScan();
-            setIsScanning(false);
+            stopScan();
           }
           if (!!device) {
-            await handleDisconnect(device);
+            await handleDisconnect(device.peripheral);
           }
           if (value.endsWith(" ")) value.slice(0, value.length - 1);
           setDeviceName(value);

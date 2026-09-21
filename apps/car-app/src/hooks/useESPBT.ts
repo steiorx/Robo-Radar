@@ -2,14 +2,11 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { PermissionsAndroid } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
+import { Device } from "@shared/types";
 
 export default function useESPBT(deviceName: string) {
   // Switch back to useState if not working
-  const device = useRef<Peripheral | undefined>(undefined);
-  const bleTarget = useRef<{
-    service: string;
-    char: string;
-  }>(null);
+  const device = useRef<Device | undefined>(undefined);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
@@ -23,7 +20,7 @@ export default function useESPBT(deviceName: string) {
   }, []);
 
   useEffect(() => {
-    if (device.current) BleManager.disconnect(device.current.id);
+    if (device.current) BleManager.disconnect(device.current.peripheral.id);
     device.current = undefined;
     BleManager.start({ showAlert: false });
 
@@ -65,14 +62,18 @@ export default function useESPBT(deviceName: string) {
     });
     setTimeout(() => {
       setIsScanning(false);
-      console.log("Stop scan");
     }, 5000);
   };
+
+  const stopScan = () => {
+    BleManager.stopScan();
+    setIsScanning(false);
+  }
 
   const handleConnect = async (targetDevice: Peripheral) => {
     try {
       setIsConnecting(true);
-      if (device.current) BleManager.disconnect(device.current.id);
+      if (device.current) BleManager.disconnect(device.current.peripheral.id);
       device.current = undefined;
       await BleManager.stopScan();
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -119,11 +120,6 @@ export default function useESPBT(deviceName: string) {
       console.log(finalChar, finalService);
 
       if (target) {
-        device.current = targetDevice;
-        bleTarget.current = {
-          service: finalService,
-          char: finalChar,
-        };
         await BleManager.startNotification(
           targetDevice.id,
           finalService,
@@ -133,6 +129,7 @@ export default function useESPBT(deviceName: string) {
         BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
           console.log("Priority given"),
         );
+        device.current = {peripheral: targetDevice, service: finalService, char: finalChar}
       }
     } catch (err) {
       console.error(err);
@@ -148,24 +145,24 @@ export default function useESPBT(deviceName: string) {
   };
 
   const handleSend = async (data: ArrayBuffer) => {
-    if (!device.current || !bleTarget.current) return;
+    if (!device.current) return;
     const uintdata = new Uint8Array(data);
     const bytes = Array.from(uintdata);
 
     await BleManager.writeWithoutResponse(
-      device.current.id,
-      bleTarget.current.service,
-      bleTarget.current.char,
+      device.current.peripheral.id,
+      device.current.service,
+      device.current.char,
       bytes,
     );
   };
 
   return {
     device: device.current,
-    bleTarget: bleTarget.current,
-    scanState: { isScanning, setIsScanning },
+    isScanning,
     isConnecting,
     handleScan,
+    stopScan,
     handleConnect,
     handleDisconnect,
     handleSend,
