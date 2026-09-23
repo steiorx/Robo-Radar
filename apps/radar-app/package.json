@@ -3,38 +3,48 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "@expo/ui": "^56.0.18",
+    "@expo/ui": "~57.0.19",
     "@roboapps/shared": "*",
-    "babel-preset-expo": "^56.0.15",
-    "expo": "^56.0.9",
-    "expo-build-properties": "~56.0.27",
-    "expo-router": "^56.2.9",
-    "expo-screen-orientation": "56.0.5",
-    "expo-status-bar": "~56.0.4",
+    "babel-preset-expo": "~57.0.0",
+    "expo": "^57.0.9",
+    "expo-build-properties": "~57.0.21",
+    "expo-router": "~57.0.22",
+    "expo-screen-orientation": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
     "nativewind": "^4.2.6",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "react": "19.2.3",
-    "react-native": "0.85.3",
+    "react-native": "0.86.3",
     "react-native-ble-manager": "12.5.0",
-    "react-native-gesture-handler": "3.0.1",
-    "react-native-reanimated": "^4.3.1",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-svg": "15.15.4",
-    "react-native-worklets": "0.8.3",
+    "react-native-worklets": "0.10.1",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "react-native-gesture-handler": "^3.0.1"
+  },
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "android:development": "cross-env APP_VARIANT=development expo prebuild --clean --platform android && cross-env APP_VARIANT=development expo run:android",
+    "start": "expo start --dev-client",
+    "android": "expo run:android --dev-client",
+    "android:development": "cross-env APP_VARIANT=development expo prebuild --clean --platform android && cross-env APP_VARIANT=development expo run:android --dev-client",
     "android:preview": "cross-env APP_VARIANT=preview expo prebuild --clean --platform android && cross-env APP_VARIANT=preview expo run:android --variant release --no-bundler",
     "android:production": "cross-env APP_VARIANT=production expo prebuild --clean --platform android && cross-env APP_VARIANT=production expo run:android --variant release --no-bundler",
     "ios": "expo run:ios",
     "web": "expo start --web"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "install": {
+        "exclude": [
+            "react-native-gesture-handler"
+        ]
+    }
+  }
 }
