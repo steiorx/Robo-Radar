@@ -5,6 +5,10 @@
 #define SERVICE_UUID "1d9e"
 #define CHARACTERISTIC_UUID "425d"
 
+#define CAR_NAME "ESP32-RIG-1"
+
+#define PASSWORD 69
+
 NimBLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 
@@ -21,13 +25,20 @@ CarController carController(&leftMotor, &rightMotor);
 #pragma pack(push, 1)
 struct ActionData
 {
-    uint8_t id; // 1 - acceleration change, 2 - direction change, 3 - max speed change, 4 - battery change, 5 - speed change
+    uint8_t id; // 1 - acceleration change, 2 - direction change, 3 - max speed change, 4 - ownership change, 5 - speed change
     int16_t value;
     // 1 accelerate, 0 constant speed, -1 decelerate
+};
+struct RadarActionData
+{
+    uint8_t password;
+    ActionData actionData;
 };
 #pragma pack(pop)
 
 int currentAccelerateState = 0;
+bool isRadar = false;
+NimBLEAddress radarAddress;
 
 class MyServerCallbacks : public NimBLEServerCallbacks
 {
@@ -38,9 +49,15 @@ class MyServerCallbacks : public NimBLEServerCallbacks
         Serial.println("Connected");
 
         carController.turnOn();
+
+        // see if it sends in time or needs delay (if so use AsyncTask lib)
+        sendOwner(isRadar);
+        sendSpeed(carController.getSpeed() * carController.getDirection() ? -1 : 1);
     }
     void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo, int reason)
     {
+        if (connInfo.getIdAddress().equals(radarAddress)) isRadar = false;
+        if (isRadar || deviceConnected) return;
         deviceConnected = false;
         pServer->startAdvertising();
         Serial.println("Disconnected");
@@ -53,26 +70,54 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
 {
     void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override
     {
-        if (pCharacteristic->getLength() == sizeof(ActionData))
+        ActionData *currentCmd = nullptr;
+        if (isRadar && pCharacteristic->getLength() == sizeof(RadarActionData))
         {
-            ActionData *cmd = (ActionData *)pCharacteristic->getValue().data();
+            RadarActionData *cmd = (RadarActionData *)pCharacteristic->getValue().data();
 
-            switch (cmd->id)
+            if (cmd->password != PASSWORD)
+                return;
+
+            currentCmd = &cmd->actionData;
+        }
+        if (!isRadar && pCharacteristic->getLength() == sizeof(ActionData))
+        {
+            currentCmd = (ActionData *)pCharacteristic->getValue().data();
+        }
+        if (!currentCmd)
+            return;
+        switch (currentCmd->id)
+        {
+        case 1:
+            currentAccelerateState = currentCmd->value;
+            break;
+
+        case 2:
+            if (currentCmd->value < -180 || currentCmd->value > 180)
+                break;
+            carController.setDirection(currentCmd->value);
+            Serial.println(currentCmd->value);
+            break;
+        case 4:
+            if (currentCmd->value == PASSWORD)
             {
-            case 1:
-                currentAccelerateState = cmd->value;
-                break;
-
-            case 2:
-                if (cmd->value < -180 || cmd->value > 180)
-                    break;
-                carController.setDirection(cmd->value);
-                Serial.println(cmd->value);
-                break;
+                if (!isRadar) { // Will be overridden
+                    radarAddress = connInfo.getIdAddress();
+                }
+                isRadar = !isRadar;
+                sendOwner(isRadar);
             }
+            break;
         }
     }
 };
+
+void sendOwner(bool isOverridden)
+{
+    ActionData data = {4, isOverridden};
+    pCharacteristic->setValue(data);
+    pCharacteristic->notify();
+}
 
 void sendSpeed(int16_t speed)
 {
@@ -92,7 +137,7 @@ void setup()
     Serial.begin(115200);
 
 #pragma region Initialize Bluetooth
-    NimBLEDevice::init("ESP32_CAR");
+    NimBLEDevice::init(CAR_NAME);
     NimBLEServer *pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
 
@@ -109,8 +154,8 @@ void setup()
     // Set the flags (Mandatory for smartphones to find it)
     advData.setFlags(BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP);
 
-    // FORCE THE NAME into the primary payload packet
-    advData.setName("ESP32-RIG-1");
+    // Device init does NOT automatically advertise the name
+    advData.setName(CAR_NAME);
 
     advData.addServiceUUID(SERVICE_UUID);
 

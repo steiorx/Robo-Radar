@@ -1,9 +1,9 @@
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { PermissionsAndroid } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { Device, MoveData } from "@shared/types";
-import { toBT } from "@shared/utils/Structures";
+import { CtoBT } from "@shared/utils/Structures";
 import { options } from "prettier-plugin-tailwindcss";
 
 export default function useESPBT() {
@@ -11,7 +11,9 @@ export default function useESPBT() {
   const device = useRef<Device | undefined>(undefined);
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false); // does nothing here
+  const pathname = usePathname();
+  const isControllingDevice = pathname === "/Controller";
 
   const router = useRouter();
 
@@ -36,7 +38,9 @@ export default function useESPBT() {
 
     const disconnectListener = BleManager.onDisconnectPeripheral((event) => {
       // If doesn't work, inspect event.peripheral (it is supposed to be device.id)
-      setDevices(devices.filter((device) => device.peripheral.id != event.peripheral));
+      setDevices(
+        devices.filter((device) => device.peripheral.id != event.peripheral),
+      );
       console.log("Disconnected");
       if (device.current?.peripheral.id == event.peripheral) {
         device.current = undefined;
@@ -49,6 +53,10 @@ export default function useESPBT() {
       disconnectListener.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isControllingDevice) selectDevice(null); 
+  }, [isControllingDevice]);
 
   const handleScan = async () => {
     setIsScanning(true);
@@ -68,7 +76,7 @@ export default function useESPBT() {
   const stopScan = () => {
     BleManager.stopScan();
     setIsScanning(false);
-  }
+  };
 
   const handleConnect = async (targetDevice: Peripheral) => {
     try {
@@ -124,25 +132,30 @@ export default function useESPBT() {
         BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
           console.log("Priority given"),
         );
-        setDevices([...devices, {peripheral: targetDevice,  service: finalService, char: finalChar}]);
+        setDevices([
+          ...devices,
+          { peripheral: targetDevice, service: finalService, char: finalChar },
+        ]);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const selectDevice = async (targetDevice: Device) => {
-    device.current = targetDevice;
+  const selectDevice = async (targetDevice: Device | null) => {
+    if (targetDevice?.peripheral.id === device.current?.peripheral.id) return;
+    if (targetDevice === null) device.current = undefined;
+    else device.current = targetDevice;
 
     const alertRadar: MoveData = {
-      id: 5,
-      value: 69
-    }
+      id: 4,
+      value: 69,
+    };
+    // Firmware handles new owner with car structure
+    await handleSend(CtoBT(alertRadar));
 
-    await handleSend(toBT(alertRadar));
-
-    router.navigate({
-      pathname: "./Controller"
+    if (targetDevice) router.navigate({
+      pathname: "./Controller",
     });
   };
 
@@ -150,8 +163,12 @@ export default function useESPBT() {
     await BleManager.disconnect(targetDevice.id).then((value) =>
       console.log("Disconnected", value),
     );
-    setDevices(devices.filter((device) => device.peripheral.id != targetDevice.id));
-    if (device.current?.peripheral.id == targetDevice.id) device.current = undefined;
+    setDevices(
+      devices.filter((device) => device.peripheral.id != targetDevice.id),
+    );
+    if (device.current?.peripheral.id == targetDevice.id) {
+      device.current = undefined;
+    }
   };
 
   const handleSend = async (data: ArrayBuffer) => {
@@ -177,6 +194,6 @@ export default function useESPBT() {
     handleConnect,
     handleDisconnect,
     handleSend,
-    selectDevice
+    selectDevice,
   };
 }

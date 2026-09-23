@@ -9,8 +9,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start:car": "cd apps/car-app && npx expo start --dev-client",
-    "start:radar": "cd apps/radar-app && npx expo start --dev-client"
+    "start:car": "cd apps/car-app && npm run start",
+    "start:radar": "cd apps/radar-app && npm run start"
   },
   "workspaces": [
     "apps/*",

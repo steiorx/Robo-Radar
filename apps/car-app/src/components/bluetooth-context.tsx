@@ -32,6 +32,7 @@ type ContextProps = {
   };
   carData: {
     speed: number;
+    isOverridden: boolean;
   };
 };
 
@@ -40,6 +41,7 @@ const BluetoothContext = createContext<ContextProps | null>(null);
 export function BluetoothProvider({ children }: { children: ReactNode }) {
   const [deviceName, _setDeviceName] = useState("");
   const [speed, setSpeed] = useState<number>(0);
+  const [isOverridden, setIsOverridden] = useState(false);
   const bluetooth = useESPBT(deviceName);
   const shouldSave = useRef(false);
 
@@ -48,11 +50,9 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem("deviceName")
       .then((value) => {
         if (value) _setDeviceName(value);
-        console.log("Fetched deviceName:", value);
       })
       .catch((reason) => {
         AsyncStorage.setItem("deviceName", "ESP32");
-        console.log("Created new value for deviceName");
       });
   }, []);
 
@@ -79,8 +79,13 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
       ({ value }) => {
         const data = fromBT(value);
 
-        if (data.id === 5) {
-          setSpeed(data.value);
+        switch (data.id) {
+          case 4:
+            setIsOverridden(data.value != 0 ? true : false);
+            break;
+
+          case 5:
+            setSpeed(data.value);
         }
       },
     );
@@ -101,6 +106,7 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
         },
         carData: {
           speed,
+          isOverridden
         },
       }}
     >

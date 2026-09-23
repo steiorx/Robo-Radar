@@ -11,8 +11,14 @@ export type MoveData = {
    * 1 - acceleration change
    * 2 - direction change
    * 3 - max speed change
-   * 4 - battery change?
+   * 4 - ownership change
+   * 5 - speed update
    */
   id: number;
   value: number;
+}
+
+export type RadarMoveData = {
+  password: number;
+  moveData: MoveData;
 }
