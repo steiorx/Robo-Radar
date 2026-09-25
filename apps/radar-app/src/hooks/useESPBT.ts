@@ -4,7 +4,7 @@ import { PermissionsAndroid } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { Device, MoveData } from "@shared/types";
 import { CtoBT } from "@shared/utils/Structures";
-import { options } from "prettier-plugin-tailwindcss";
+import licenses from "apps/radar-app/assets/licenses.json";
 
 export default function useESPBT() {
   // Switch back to useState if not working
@@ -21,6 +21,7 @@ export default function useESPBT() {
     PermissionsAndroid.requestMultiple([
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     ]);
     BleManager.start({ showAlert: false });
   }, []);
@@ -134,7 +135,7 @@ export default function useESPBT() {
         );
         setDevices([
           ...devices,
-          { peripheral: targetDevice, service: finalService, char: finalChar },
+          { peripheral: targetDevice, service: finalService, char: finalChar, licensed: licenses.names.includes(targetDevice.name ?? "") },
         ]);
       }
     } catch (err) {

@@ -57,7 +57,6 @@ export function ControllerScreen({ sendToController, speed, isOverridden }: Prop
           simultaneousHandlers={[joystickGestureRef, acceleratorGestureRef]}
           changeAccelerateState={changeAccelerateState}
         />
-        <Battery />
         <SpeedCounter speed={speed} />
         {isOverridden ? <OverriddenMessage /> : null}
       </GestureHandlerRootView>

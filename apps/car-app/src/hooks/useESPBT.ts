@@ -1,64 +1,97 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { PermissionsAndroid } from "react-native";
+import { PermissionsAndroid, Platform } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { Device } from "@shared/types";
 
 export default function useESPBT(deviceName: string) {
-  // Switch back to useState if not working
-  const device = useRef<Device | undefined>(undefined);
+  // TODO: Switch back to useState 
+  const [device, setDevice] = useState<Device | undefined>(undefined);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
 
   const router = useRouter();
 
   useEffect(() => {
-    PermissionsAndroid.requestMultiple([
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-    ]);
+    const initializeBluetooth = async () => {
+      const permissions = [
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      ];
+
+      const results = await PermissionsAndroid.requestMultiple(permissions);
+      const denied = Object.entries(results).filter(
+        ([, result]) => result !== PermissionsAndroid.RESULTS.GRANTED,
+      );
+      if (denied.length !== 0) {
+        console.error("Bluetooth permissions denied", denied);
+      }
+
+      await BleManager.start({showAlert: false});
+    };
+
+    initializeBluetooth().catch((error) =>
+      console.error("Bluetooth initialization failed", error),
+    );
   }, []);
 
   useEffect(() => {
-    if (device.current) BleManager.disconnect(device.current.peripheral.id);
-    device.current = undefined;
-    BleManager.start({ showAlert: false });
+    if (device) BleManager.disconnect(device.peripheral.id);
+    setDevice(undefined);
+    let discoverListener: { remove: () => void } | undefined;
+    let disconnectListener: { remove: () => void } | undefined;
+    let cancelled = false;
 
-    const discoverListener = BleManager.onDiscoverPeripheral(
-      (peripheral: Peripheral) => {
-        if (!deviceName) return;
-        if (peripheral.name?.includes(deviceName)) {
-          if (peripheral.advertising.serviceUUIDs?.length !== 0) {
-            handleConnect(peripheral);
-            BleManager.stopScan();
-            setIsScanning(false);
-          } else return;
-        }
-      },
-    );
+    const initializeBluetooth = async () => {
+      try {
+        // await BleManager.start({ showAlert: false });
+        if (cancelled) return;
 
-    const disconnectListener = BleManager.onDisconnectPeripheral(() => {
-      console.log("Disconnected");
-      device.current = undefined;
-      if (router.canDismiss()) router.dismissAll();
-    });
+        discoverListener = BleManager.onDiscoverPeripheral(
+          (peripheral: Peripheral) => {
+            console.log(peripheral);
+            if (!deviceName) return;
+            console.log(peripheral.name);
+            if (peripheral.name?.includes(deviceName)) {
+              if (peripheral.advertising.serviceUUIDs?.length !== 0) {
+                handleConnect(peripheral);
+                BleManager.stopScan();
+                setIsScanning(false);
+              } else return;
+            }
+          },
+        );
+
+        disconnectListener = BleManager.onDisconnectPeripheral(() => {
+          console.log("Disconnected");
+          setDevice(undefined);
+          if (router.canDismiss()) router.dismissAll();
+        });
+      } catch (error) {
+        console.error("Bluetooth manager start failed", error);
+      }
+    };
+
+    initializeBluetooth();
 
     return () => {
-      discoverListener.remove();
-      disconnectListener.remove();
+      discoverListener?.remove();
+      disconnectListener?.remove();
     };
   }, [deviceName]);
 
   const handleScan = async () => {
+    console.log("Scanning");
     setIsScanning(true);
     BleManager.stopScan();
-    device.current = undefined;
+    setDevice(undefined);
     BleManager.scan({
       seconds: 5,
-      serviceUUIDs: [],
-      allowDuplicates: true,
-      scanMode: 2,
-      matchMode: 1,
+      // serviceUUIDs: [],
+      // allowDuplicates: true,
+      // scanMode: 2,
+      // matchMode: 1,
     });
     setTimeout(() => {
       setIsScanning(false);
@@ -66,15 +99,16 @@ export default function useESPBT(deviceName: string) {
   };
 
   const stopScan = () => {
+    console.log("stop");
     BleManager.stopScan();
     setIsScanning(false);
-  }
+  };
 
   const handleConnect = async (targetDevice: Peripheral) => {
     try {
       setIsConnecting(true);
-      if (device.current) BleManager.disconnect(device.current.peripheral.id);
-      device.current = undefined;
+      if (device) BleManager.disconnect(device.peripheral.id);
+      setDevice(undefined);
       await BleManager.stopScan();
       await new Promise((resolve) => setTimeout(resolve, 150));
       await BleManager.connect(targetDevice.id);
@@ -129,7 +163,11 @@ export default function useESPBT(deviceName: string) {
         BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
           console.log("Priority given"),
         );
-        device.current = {peripheral: targetDevice, service: finalService, char: finalChar}
+        setDevice({
+          peripheral: targetDevice,
+          service: finalService,
+          char: finalChar,
+        });
       }
     } catch (err) {
       console.error(err);
@@ -141,24 +179,24 @@ export default function useESPBT(deviceName: string) {
     await BleManager.disconnect(targetDevice.id).then((value) =>
       console.log("Disconnected", value),
     );
-    device.current = undefined;
+    setDevice(undefined);
   };
 
   const handleSend = async (data: ArrayBuffer) => {
-    if (!device.current) return;
+    if (!device) return;
     const uintdata = new Uint8Array(data);
     const bytes = Array.from(uintdata);
 
     await BleManager.writeWithoutResponse(
-      device.current.peripheral.id,
-      device.current.service,
-      device.current.char,
+      device.peripheral.id,
+      device.service,
+      device.char,
       bytes,
     );
   };
 
   return {
-    device: device.current,
+    device,
     isScanning,
     isConnecting,
     handleScan,

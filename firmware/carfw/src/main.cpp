@@ -5,7 +5,7 @@
 #define SERVICE_UUID "1d9e"
 #define CHARACTERISTIC_UUID "425d"
 
-#define CAR_NAME "ESP32-RIG-1"
+#define CAR_NAME "ESP32-RIG-2"
 
 #define PASSWORD 69
 
@@ -40,6 +40,20 @@ int currentAccelerateState = 0;
 bool isRadar = false;
 NimBLEAddress radarAddress;
 
+inline void sendOwner(bool isOverridden)
+{
+    ActionData data = {4, isOverridden};
+    pCharacteristic->setValue(data);
+    pCharacteristic->notify();
+}
+
+inline void sendSpeed(int16_t speed)
+{
+    ActionData data = {5, speed};
+    pCharacteristic->setValue(data);
+    pCharacteristic->notify();
+}
+
 class MyServerCallbacks : public NimBLEServerCallbacks
 {
     void onConnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo) override
@@ -56,8 +70,10 @@ class MyServerCallbacks : public NimBLEServerCallbacks
     }
     void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo, int reason)
     {
-        if (connInfo.getIdAddress().equals(radarAddress)) isRadar = false;
-        if (isRadar || deviceConnected) return;
+        if (connInfo.getIdAddress().equals(radarAddress))
+            isRadar = false;
+        if (isRadar || deviceConnected)
+            return;
         deviceConnected = false;
         pServer->startAdvertising();
         Serial.println("Disconnected");
@@ -101,7 +117,8 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
         case 4:
             if (currentCmd->value == PASSWORD)
             {
-                if (!isRadar) { // Will be overridden
+                if (!isRadar)
+                { // Will be overridden
                     radarAddress = connInfo.getIdAddress();
                 }
                 isRadar = !isRadar;
@@ -111,20 +128,6 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
         }
     }
 };
-
-void sendOwner(bool isOverridden)
-{
-    ActionData data = {4, isOverridden};
-    pCharacteristic->setValue(data);
-    pCharacteristic->notify();
-}
-
-void sendSpeed(int16_t speed)
-{
-    ActionData data = {5, speed};
-    pCharacteristic->setValue(data);
-    pCharacteristic->notify();
-}
 
 unsigned int lastAction = 0;
 const int loopDelay = 50; // ms

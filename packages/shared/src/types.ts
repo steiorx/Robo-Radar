@@ -4,6 +4,7 @@ export type Device = {
   peripheral: Peripheral;
   service: string;
   char: string;
+  licensed?: boolean;
 };
 
 export type MoveData = {
