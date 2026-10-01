@@ -7,9 +7,11 @@
 
 #define CAR_NAME "ESP32-RIG-2"
 
-#define PASSWORD 69
+#define PASSWORD_IN 69
+#define PASSWORD_OUT 67
 
 NimBLECharacteristic *pCharacteristic;
+NimBLEAdvertising* pAdvertising;
 bool deviceConnected = false;
 
 const float accelerateFactor = 80;
@@ -58,7 +60,6 @@ class MyServerCallbacks : public NimBLEServerCallbacks
 {
     void onConnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo) override
     {
-        deviceConnected = true;
         pServer->updateConnParams(connInfo.getConnHandle(), 6, 12, 0, 200);
         Serial.println("Connected");
 
@@ -67,15 +68,15 @@ class MyServerCallbacks : public NimBLEServerCallbacks
         // see if it sends in time or needs delay (if so use AsyncTask lib)
         sendOwner(isRadar);
         sendSpeed(carController.getSpeed() * carController.getDirection() ? -1 : 1);
+
+        pAdvertising->start();
     }
     void onDisconnect(NimBLEServer *pServer, NimBLEConnInfo &connInfo, int reason)
     {
         if (connInfo.getIdAddress().equals(radarAddress))
             isRadar = false;
-        if (isRadar || deviceConnected)
+        if (isRadar)
             return;
-        deviceConnected = false;
-        pServer->startAdvertising();
         Serial.println("Disconnected");
         carController.doBreak();
         carController.turnOff();
@@ -91,7 +92,15 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             RadarActionData *cmd = (RadarActionData *)pCharacteristic->getValue().data();
 
-            if (cmd->password != PASSWORD)
+            if (cmd->password == PASSWORD_OUT) 
+            {
+                Serial.println("Got off password");
+                isRadar = false;
+                digitalWrite(2, LOW);
+                sendOwner(isRadar);
+                return;
+            }
+            if (cmd->password != PASSWORD_IN)
                 return;
 
             currentCmd = &cmd->actionData;
@@ -115,13 +124,15 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
             Serial.println(currentCmd->value);
             break;
         case 4:
-            if (currentCmd->value == PASSWORD)
+            if (currentCmd->value == PASSWORD_IN)
             {
+                Serial.println("Got password");
                 if (!isRadar)
                 { // Will be overridden
                     radarAddress = connInfo.getIdAddress();
                 }
-                isRadar = !isRadar;
+                isRadar = true;
+                digitalWrite(2, HIGH);
                 sendOwner(isRadar);
             }
             break;
@@ -162,7 +173,7 @@ void setup()
 
     advData.addServiceUUID(SERVICE_UUID);
 
-    NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+    pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->setAdvertisementData(advData);
 
     // Turn off scan response completely so Android handles everything in packet 1
@@ -175,7 +186,7 @@ void setup()
 
     carController.begin();
 
-    pinMode(21, OUTPUT);
+    pinMode(2, OUTPUT);
 
     lastTime = millis();
 }

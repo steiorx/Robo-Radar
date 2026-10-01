@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Fragment } from "react";
 import "../global.css";
 import { BluetoothProvider } from "../src/components/bluetooth-context";
 

@@ -3,7 +3,6 @@ import {
   GestureDetector,
   GestureStateManager,
   usePanGesture,
-  useRotationGesture,
 } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -87,35 +86,6 @@ export default function SteeringWheel({ changeDirection }: SteeringWheelProps) {
     },
     onTouchesUp: (event) => {
       "use worklet";
-      rotation.set(withSpring(0));
-      scheduleOnRN(changeDirection, 0, true);
-    },
-  });
-
-  const steeringGesturex = useRotationGesture({
-    manualActivation: true,
-    onTouchesMove: (event) => {
-      "use worklet";
-      if (event.numberOfTouches <= 2) {
-        GestureStateManager.activate(event.handlerTag);
-      } else {
-        GestureStateManager.fail(event.handlerTag);
-      }
-    },
-    onUpdate: (event) => {
-      "use worklet";
-      let newRotation = rotation.value + event.rotationChange;
-
-      if (newRotation > Math.PI) newRotation = Math.PI;
-      else if (newRotation < -Math.PI) newRotation = -Math.PI;
-
-      rotation.value = newRotation;
-
-      scheduleOnRN(changeDirection, (newRotation / Math.PI) * 180);
-    },
-    onTouchesUp: (event) => {
-      "use worklet";
-      console.log("Fingers up");
       rotation.set(withSpring(0));
       scheduleOnRN(changeDirection, 0, true);
     },

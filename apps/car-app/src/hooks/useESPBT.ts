@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { PermissionsAndroid, Platform } from "react-native";
+import { AppState, PermissionsAndroid, Platform } from "react-native";
 import BleManager, { Peripheral } from "react-native-ble-manager";
 import { Device } from "@shared/types";
 
@@ -9,32 +9,9 @@ export default function useESPBT(deviceName: string) {
   const [device, setDevice] = useState<Device | undefined>(undefined);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const bluetoothStarted = useRef(false);
 
   const router = useRouter();
-
-  useEffect(() => {
-    const initializeBluetooth = async () => {
-      const permissions = [
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-      ];
-
-      const results = await PermissionsAndroid.requestMultiple(permissions);
-      const denied = Object.entries(results).filter(
-        ([, result]) => result !== PermissionsAndroid.RESULTS.GRANTED,
-      );
-      if (denied.length !== 0) {
-        console.error("Bluetooth permissions denied", denied);
-      }
-
-      await BleManager.start({showAlert: false});
-    };
-
-    initializeBluetooth().catch((error) =>
-      console.error("Bluetooth initialization failed", error),
-    );
-  }, []);
 
   useEffect(() => {
     if (device) BleManager.disconnect(device.peripheral.id);
@@ -82,20 +59,49 @@ export default function useESPBT(deviceName: string) {
   }, [deviceName]);
 
   const handleScan = async () => {
-    console.log("Scanning");
-    setIsScanning(true);
-    BleManager.stopScan();
-    setDevice(undefined);
-    BleManager.scan({
-      seconds: 5,
-      // serviceUUIDs: [],
-      // allowDuplicates: true,
-      // scanMode: 2,
-      // matchMode: 1,
-    });
-    setTimeout(() => {
+    try {
+      if (Platform.OS === "android") {
+        if (AppState.currentState !== "active") return;
+
+        const permissions =
+          Platform.Version >= 31
+            ? [
+                PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+                PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+              ]
+            : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+        const results = await PermissionsAndroid.requestMultiple(permissions);
+        const denied = Object.entries(results).filter(
+          ([, result]) => result !== PermissionsAndroid.RESULTS.GRANTED,
+        );
+
+        if (denied.length !== 0) {
+          console.error("Bluetooth permissions denied", denied);
+          return;
+        }
+      }
+
+      if (!bluetoothStarted.current) {
+        await BleManager.start({ showAlert: false });
+        bluetoothStarted.current = true;
+      }
+
+      setIsScanning(true);
+      BleManager.stopScan();
+      await BleManager.scan({
+        seconds: 5,
+        serviceUUIDs: [],
+        allowDuplicates: true,
+        scanMode: 2,
+        matchMode: 1,
+      });
+      setTimeout(() => {
+        setIsScanning(false);
+      }, 5000);
+    } catch (error) {
       setIsScanning(false);
-    }, 5000);
+      console.error("Bluetooth scan failed", error);
+    }
   };
 
   const stopScan = () => {

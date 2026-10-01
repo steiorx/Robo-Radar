@@ -34,7 +34,7 @@ export default function Controller() {
     }, 75);
   }
 
-  if (!device) return <Text>Error! No device is connected!</Text>;
+  if (!device.current) return <Text>Error! No device is connected!</Text>;
 
-  return <ControllerScreen sendToController={sendToController} speed={speeds[device.peripheral.id]} />;
+  return <ControllerScreen sendToController={sendToController} speed={speeds[device.current.peripheral.id]} />;
 }

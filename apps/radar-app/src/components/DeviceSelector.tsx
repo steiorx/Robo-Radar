@@ -33,11 +33,11 @@ export default function DeviceSelector() {
       {devices.map((device) => (
         <Pressable
           key={device.peripheral.id}
-          className="rounded-lg w-full h-max border-gray-600 border-2 p-2"
+          className="rounded-lg w-full h-32 border-gray-600 border-2 p-2"
           onPress={() => handleDeviceClick(device)}
         >
           <View className="flex-row">
-            <View className="h-full flex-3">
+            <View className="flex-[6]">
               {/* Device Name & ID */}
               <Text className="font-bold text-3xl">
                 {device.peripheral.name ?? "Unnamed device"}
@@ -59,14 +59,14 @@ export default function DeviceSelector() {
                 <Text className="absolute right-0 font-medium text-gray-600">
                   Speed:{" "}
                   <Text className="font-semibold text-black">
-                    {speeds[device.peripheral.id]}
+                    {speeds[device.peripheral.id] ?? "?"}
                   </Text>
                 </Text>
               </View>
             </View>
-            <View className="h-full flex-2">
+            <View className="p-3 flex-[2] m-2">
               <View
-                className={`m-6 ${device.licensed ? "bg-green-500" : "bg-red-500"} size-full`}
+                className={` ${device.licensed ? "bg-green-500" : "bg-red-500"} size-full`}
               ></View>
             </View>
           </View>

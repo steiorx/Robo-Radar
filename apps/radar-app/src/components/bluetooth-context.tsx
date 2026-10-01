@@ -2,6 +2,7 @@ import {
   createContext,
   Dispatch,
   ReactNode,
+  RefObject,
   SetStateAction,
   use,
   useEffect,
@@ -14,7 +15,7 @@ import { Device } from "@shared/types";
 
 export type RadarContextProps = {
   bluetooth: {
-    device: Device | undefined;
+    device: RefObject<Device | null>;
     devices: Device[];
     isScanning: boolean;
     isConnecting: boolean;
@@ -23,6 +24,7 @@ export type RadarContextProps = {
     handleDisconnect: (targetDevice: Peripheral) => Promise<void>;
     handleSend: (data: ArrayBuffer) => Promise<void>;
     selectDevice: (targetDevice: Device) => Promise<void>;
+    unselectDevice: () => Promise<void>;
   };
   carsData: {
     speeds: Record<string, number>;
