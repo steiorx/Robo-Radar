@@ -11,10 +11,11 @@
 #define PASSWORD_OUT 67
 
 NimBLECharacteristic *pCharacteristic;
-NimBLEAdvertising* pAdvertising;
+NimBLEAdvertising *pAdvertising;
 bool deviceConnected = false;
 
-const float accelerateFactor = 80;
+const float accelerateFactor = 100;
+bool isBreaking = false;
 
 const MotorPins leftMotorPins{25, 26, 33, 32};
 const MotorPins rightMotorPins{14, 15, 18, 19};
@@ -27,7 +28,7 @@ CarController carController(&leftMotor, &rightMotor);
 #pragma pack(push, 1)
 struct ActionData
 {
-    uint8_t id; // 1 - acceleration change, 2 - direction change, 3 - max speed change, 4 - ownership change, 5 - speed change
+    uint8_t id; // 1 - acceleration change, 2 - direction change, 3 - break, 4 - ownership change, 5 - speed change
     int16_t value;
     // 1 accelerate, 0 constant speed, -1 decelerate
 };
@@ -47,13 +48,20 @@ inline void sendOwner(bool isOverridden)
     ActionData data = {4, isOverridden};
     pCharacteristic->setValue(data);
     pCharacteristic->notify();
+    Serial.printf("Changed override %d", isOverridden);
 }
 
 inline void sendSpeed(int16_t speed)
 {
     ActionData data = {5, speed};
-    pCharacteristic->setValue(data);
-    pCharacteristic->notify();
+    pCharacteristic->notify(data);
+}
+
+inline void breakCar() {
+    if (carController.getSpeed() == 0) return;
+    isBreaking = true;
+    if (carController.getDirection()) currentAccelerateState = 2;
+    else currentAccelerateState = -2;
 }
 
 class MyServerCallbacks : public NimBLEServerCallbacks
@@ -92,7 +100,7 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             RadarActionData *cmd = (RadarActionData *)pCharacteristic->getValue().data();
 
-            if (cmd->password == PASSWORD_OUT) 
+            if (cmd->password == PASSWORD_OUT)
             {
                 Serial.println("Got off password");
                 isRadar = false;
@@ -123,6 +131,9 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
             carController.setDirection(currentCmd->value);
             Serial.println(currentCmd->value);
             break;
+        case 3:
+            breakCar();
+            break;
         case 4:
             if (currentCmd->value == PASSWORD_IN)
             {
@@ -134,6 +145,7 @@ class MyCharacteristicCallbacks : public NimBLECharacteristicCallbacks
                 isRadar = true;
                 digitalWrite(2, HIGH);
                 sendOwner(isRadar);
+                breakCar();
             }
             break;
         }
@@ -225,9 +237,12 @@ void loop()
             {
                 if (!startReverseTime)
                 {
-                    startReverseTime = currentTime;
+                    if (isBreaking)
+                    {
+                        isBreaking = false;
+                        currentAccelerateState = 0;
+                    } else startReverseTime = currentTime;
                     carController.setSpeed(0);
-                    // carController.printSpeeds();
 
                     sendSpeed(0);
 
@@ -245,7 +260,6 @@ void loop()
                     return;
             }
             carController.setSpeed(newSpeed);
-            // carController.printSpeeds();
 
             sendSpeed(newSpeed);
         }

@@ -4,7 +4,7 @@ import { Device } from "@shared/types";
 
 export default function DeviceSelector() {
   const {
-    bluetooth: { devices, handleScan, isScanning, selectDevice },
+    bluetooth: { devices, handleScan, stopScan, isScanning, selectDevice },
     carsData: { speeds },
   } = useBluetooth();
 
@@ -34,6 +34,9 @@ export default function DeviceSelector() {
         <Pressable
           key={device.peripheral.id}
           className="rounded-lg w-full h-32 border-gray-600 border-2 p-2"
+          style={{
+            backgroundColor: device.close ? "red" : undefined
+          }}
           onPress={() => handleDeviceClick(device)}
         >
           <View className="flex-row">
@@ -73,11 +76,13 @@ export default function DeviceSelector() {
         </Pressable>
       ))}
       <Pressable
-        className="p-3 m-2 bg-cyan-400 w-1/2 self-center rounded-xl"
-        onPress={() => handleScan()}
+        className={`${isScanning ? "bg-red-500" : "bg-cyan-400"} p-3 m-2 w-1/2 self-center rounded-xl`}
+        onPress={() => {
+          !isScanning ? handleScan() : stopScan();
+        }}
       >
         <Text className="text-xl text-center">
-          {isScanning ? "Scanning..." : "Scan"}
+          {isScanning ? "Stop scan" : "Scan"}
         </Text>
       </Pressable>
     </View>

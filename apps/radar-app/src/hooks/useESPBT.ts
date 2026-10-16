@@ -1,10 +1,14 @@
 import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { AppState, PermissionsAndroid, Platform } from "react-native";
-import BleManager, { Peripheral } from "react-native-ble-manager";
+import BleManager, { BleState, Peripheral } from "react-native-ble-manager";
 import { Device, MoveData, RadarMoveData } from "@shared/types";
 import { CtoBT, RtoBT } from "@shared/utils/Structures";
 import licenses from "../../assets/licenses.json";
+import { useAudioPlayer } from "expo-audio";
+import audioSource from "../../assets/danger-alarm-sound-effect-meme.mp3";
+
+const minRSSI = -50;
 
 export default function useESPBT() {
   // Switch back to useState if not working
@@ -15,10 +19,35 @@ export default function useESPBT() {
   const bluetoothStarted = useRef(false);
   const pathname = usePathname();
   const isControllingDevice = pathname === "/Controller";
+  const tempDevices = useRef<Device[]>([]);
+
+  const [hasClose, setHasClose] = useState<boolean>(false);
+  const player = useAudioPlayer(audioSource);
+  player.loop = true;
+
+  const refreshInterval = 200;
 
   const router = useRouter();
 
+  const toUnique = () => {
+    let set: Device[] = [];
+    let hasCloseTemp = false;
+    tempDevices.current.forEach((device) => {
+      if (set.find((dev) => dev.peripheral.id == device.peripheral.id)) return;
+      if (!device.licensed) {
+        device.close = device.peripheral.rssi > minRSSI;
+        if (device.close) hasCloseTemp = true;
+      }
+      set.push(device);
+    });
+    setHasClose(hasCloseTemp);
+    set.sort((a, b) => a.peripheral.rssi - b.peripheral.rssi);
+    setDevices(set);
+  };
+
   useEffect(() => {
+    tempDevices.current = [];
+
     const discoverListener = BleManager.onDiscoverPeripheral(
       (peripheral: Peripheral) => {
         if (
@@ -33,8 +62,8 @@ export default function useESPBT() {
 
     const disconnectListener = BleManager.onDisconnectPeripheral((event) => {
       // If doesn't work, inspect event.peripheral (it is supposed to be device.id)
-      setDevices(
-        devices.filter((device) => device.peripheral.id != event.peripheral),
+      tempDevices.current = tempDevices.current.filter(
+        (device) => device.peripheral.id != event.peripheral,
       );
       console.log("Disconnected");
       if (device.current?.peripheral.id == event.peripheral) {
@@ -43,15 +72,26 @@ export default function useESPBT() {
       }
     });
 
+    const interval = setInterval(toUnique, refreshInterval);
+
     return () => {
       discoverListener.remove();
       disconnectListener.remove();
+      clearInterval(interval);
     };
   }, []);
 
   useEffect(() => {
     if (!isControllingDevice) unselectDevice();
   }, [isControllingDevice]);
+
+  useEffect(() => {
+    if (hasClose && !isControllingDevice) player.play();
+    else {
+      player.pause();
+      player.seekTo(0);
+    }
+  }, [hasClose, isControllingDevice]);
 
   const handleScan = async () => {
     try {
@@ -61,7 +101,6 @@ export default function useESPBT() {
         const permissions = [
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ];
         const results = await PermissionsAndroid.requestMultiple(permissions);
         const denied = Object.entries(results).filter(
@@ -72,6 +111,15 @@ export default function useESPBT() {
           console.error("Bluetooth permissions denied", denied);
           return;
         }
+
+        const btState = await BleManager.checkState();
+
+        if (btState === BleState.Off)
+          try {
+            await BleManager.enableBluetooth();
+          } catch {
+            return;
+          }
       }
 
       if (!bluetoothStarted.current) {
@@ -79,18 +127,16 @@ export default function useESPBT() {
         bluetoothStarted.current = true;
       }
 
+      tempDevices.current = [];
+
       setIsScanning(true);
       BleManager.stopScan();
       await BleManager.scan({
-        seconds: 5,
         serviceUUIDs: [],
         allowDuplicates: true,
         scanMode: 2,
         matchMode: 1,
       });
-      setTimeout(() => {
-        setIsScanning(false);
-      }, 5000);
     } catch (error) {
       setIsScanning(false);
       console.error("Bluetooth scan failed", error);
@@ -103,6 +149,14 @@ export default function useESPBT() {
   };
 
   const handleConnect = async (targetDevice: Peripheral) => {
+    if (await BleManager.isPeripheralConnected(targetDevice.id)) {
+      const devIndex = tempDevices.current.findIndex(
+        (device) => device.peripheral.id,
+      );
+      if (devIndex != -1)
+        tempDevices.current[devIndex].peripheral.rssi = targetDevice.rssi;
+      return;
+    }
     try {
       await BleManager.connect(targetDevice.id);
       console.log(
@@ -139,12 +193,8 @@ export default function useESPBT() {
 
       if (!target) return;
 
-      console.log(target);
-
       const finalService = target.service;
       const finalChar = target.characteristic;
-
-      console.log(finalChar, finalService);
 
       if (target) {
         await BleManager.startNotification(
@@ -153,18 +203,13 @@ export default function useESPBT() {
           finalChar,
         );
         await new Promise((resolve) => setTimeout(resolve, 150));
-        BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
-          console.log("Priority given"),
-        );
-        setDevices([
-          ...devices,
-          {
-            peripheral: targetDevice,
-            service: finalService,
-            char: finalChar,
-            licensed: licenses.names.includes(targetDevice.name ?? ""),
-          },
-        ]);
+        await BleManager.requestConnectionPriority(targetDevice.id, 1);
+        tempDevices.current.push({
+          peripheral: targetDevice,
+          service: finalService,
+          char: finalChar,
+          licensed: licenses.names.includes(targetDevice.name ?? ""),
+        });
       }
     } catch (err) {
       console.error(err);
@@ -177,7 +222,7 @@ export default function useESPBT() {
 
     const alertRadar: MoveData = {
       id: 4,
-      value: targetDevice !== null ? 69 : 67,
+      value: 69,
     };
     // Firmware handles new owner with car structure
     await handleSend(CtoBT(alertRadar));
@@ -196,13 +241,13 @@ export default function useESPBT() {
       moveData: {
         id: 4,
         value: 67,
-      }
-    }
+      },
+    };
 
     await handleSend(RtoBT(alertRadar));
 
     device.current = null;
-  }
+  };
 
   const handleDisconnect = async (targetDevice: Peripheral) => {
     await BleManager.disconnect(targetDevice.id).then((value) =>

@@ -1,9 +1,7 @@
 import {
   createContext,
-  Dispatch,
   ReactNode,
   RefObject,
-  SetStateAction,
   use,
   useEffect,
   useState,
@@ -20,6 +18,7 @@ export type RadarContextProps = {
     isScanning: boolean;
     isConnecting: boolean;
     handleScan: () => Promise<void>;
+    stopScan: () => void;
     handleConnect: (targetDevice: Peripheral) => Promise<void>;
     handleDisconnect: (targetDevice: Peripheral) => Promise<void>;
     handleSend: (data: ArrayBuffer) => Promise<void>;
@@ -58,7 +57,7 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
     return () => {
       updateListener.remove();
     };
-  });
+  }, []);
 
   return (
     <BluetoothContext

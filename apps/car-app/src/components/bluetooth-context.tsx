@@ -93,7 +93,7 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
     return () => {
       updateListener.remove();
     };
-  });
+  }, []);
 
   return (
     <BluetoothContext

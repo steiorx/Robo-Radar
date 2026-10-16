@@ -4,3 +4,8 @@ declare module "*.svg" {
   const content: React.FC<SvgProps>;
   export default content;
 }
+
+declare module "*.mp3" {
+  const asset: number;
+  export default asset;
+}

@@ -1,11 +1,10 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { AppState, PermissionsAndroid, Platform } from "react-native";
-import BleManager, { Peripheral } from "react-native-ble-manager";
+import BleManager, { BleState, Peripheral } from "react-native-ble-manager";
 import { Device } from "@shared/types";
 
 export default function useESPBT(deviceName: string) {
-  // TODO: Switch back to useState 
   const [device, setDevice] = useState<Device | undefined>(undefined);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -22,12 +21,10 @@ export default function useESPBT(deviceName: string) {
 
     const initializeBluetooth = async () => {
       try {
-        // await BleManager.start({ showAlert: false });
         if (cancelled) return;
 
         discoverListener = BleManager.onDiscoverPeripheral(
           (peripheral: Peripheral) => {
-            console.log(peripheral);
             if (!deviceName) return;
             console.log(peripheral.name);
             if (peripheral.name?.includes(deviceName)) {
@@ -63,13 +60,10 @@ export default function useESPBT(deviceName: string) {
       if (Platform.OS === "android") {
         if (AppState.currentState !== "active") return;
 
-        const permissions =
-          Platform.Version >= 31
-            ? [
-                PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-                PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-              ]
-            : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+        const permissions = [
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        ];
         const results = await PermissionsAndroid.requestMultiple(permissions);
         const denied = Object.entries(results).filter(
           ([, result]) => result !== PermissionsAndroid.RESULTS.GRANTED,
@@ -79,6 +73,15 @@ export default function useESPBT(deviceName: string) {
           console.error("Bluetooth permissions denied", denied);
           return;
         }
+
+        const btState = await BleManager.checkState();
+
+        if (btState === BleState.Off)
+          try {
+            await BleManager.enableBluetooth();
+          } catch {
+            return;
+          }
       }
 
       if (!bluetoothStarted.current) {
@@ -90,7 +93,7 @@ export default function useESPBT(deviceName: string) {
       BleManager.stopScan();
       await BleManager.scan({
         seconds: 5,
-        serviceUUIDs: [],
+        // serviceUUIDs: [],
         allowDuplicates: true,
         scanMode: 2,
         matchMode: 1,

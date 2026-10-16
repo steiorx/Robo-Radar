@@ -7,6 +7,7 @@ import Battery from "../components/Battery";
 import SteeringWheel from "../components/SteeringWheel";
 import SpeedCounter from "../components/SpeedCounter";
 import { MoveData } from "@shared/types";
+import Handbrake from "@shared/components/Handbrake";
 
 type Props = {
   sendToController: (data: MoveData, force: boolean) => void;
@@ -14,7 +15,11 @@ type Props = {
   isOverridden?: boolean;
 };
 
-export function ControllerScreen({ sendToController, speed, isOverridden }: Props) {
+export function ControllerScreen({
+  sendToController,
+  speed,
+  isOverridden,
+}: Props) {
   const joystickGestureRef = useRef(null);
   const acceleratorGestureRef = useRef(null);
   const brakerGestureRef = useRef(null);
@@ -43,6 +48,16 @@ export function ControllerScreen({ sendToController, speed, isOverridden }: Prop
     );
   }
 
+  function breakCar() {
+    sendToController(
+      {
+        id: 3,
+        value: 0,
+      },
+      true,
+    );
+  }
+
   return (
     <View className="size-full">
       <GestureHandlerRootView className="size-full">
@@ -58,6 +73,7 @@ export function ControllerScreen({ sendToController, speed, isOverridden }: Prop
           changeAccelerateState={changeAccelerateState}
         />
         <SpeedCounter speed={speed} />
+        <Handbrake breakCar={breakCar} />
         {isOverridden ? <OverriddenMessage /> : null}
       </GestureHandlerRootView>
     </View>

@@ -3,7 +3,7 @@
     "name": "Car App",
     "slug": "car-app",
     "scheme": "carapp",
-    "version": "1.1.0",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,13 +17,11 @@
       },
       "permissions": [
         "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.BLUETOOTH_CONNECT"
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.steiorx.carapp",
-      "versionCode": 2
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -39,9 +37,18 @@
             "expo-build-properties",
             {
                 "android": {
-                    "buildArchs": ["armeabi-v7a", "arm64-v8a"],
-                    "cmakeVersion": "4.1.2"
+                    "buildArchs": ["arm64-v8a"],
+                    "cmakeVersion": "4.1.2",
+                    "extraGradleProperties": {
+                        "expo.useCleartextTraffic": true
+                    }
                 }
+            }
+        ],
+        [
+            "react-native-ble-manager",
+            {
+                "neverForLocation": true
             }
         ]
     ]

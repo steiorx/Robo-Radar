@@ -5,6 +5,7 @@ export type Device = {
   service: string;
   char: string;
   licensed?: boolean;
+  close?: boolean;
 };
 
 export type MoveData = {
