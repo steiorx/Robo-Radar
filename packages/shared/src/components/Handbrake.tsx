@@ -2,28 +2,26 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   breakCar: () => void;
-}
+};
 
-export default function Handbrake({breakCar}: Props) {
+export default function Handbrake({ breakCar }: Props) {
   return (
-    <View style={styles.container} className="bg-orange-300 p-5 rounded-md shadow-xl shadow-orange-500">
-      <Pressable
-        onPress={breakCar}
-        className="size-full"
-      >
-        <Text>
-          BRAKE
-        </Text>
-      </Pressable>
-    </View>
-  )
+    <Pressable
+      style={styles.container}
+      onPress={breakCar}
+      hitSlop={30}
+      className="p-6 bg-orange-300 rounded-md shadow-xl shadow-orange-500"
+    >
+      <Text>BRAKE</Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    left: "40%",
+    left: "35%",
     bottom: "15%",
     // borderRadius: 16,
-    position: 'absolute'
+    position: "absolute",
   },
 });

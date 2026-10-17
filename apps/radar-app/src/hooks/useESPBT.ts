@@ -41,7 +41,7 @@ export default function useESPBT() {
       set.push(device);
     });
     setHasClose(hasCloseTemp);
-    set.sort((a, b) => a.peripheral.rssi - b.peripheral.rssi);
+    set.sort((a, b) => a.peripheral.id.localeCompare(b.peripheral.id));
     setDevices(set);
   };
 
@@ -84,6 +84,15 @@ export default function useESPBT() {
   useEffect(() => {
     if (!isControllingDevice) unselectDevice();
   }, [isControllingDevice]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextAppState => {
+      unselectDevice();
+      if (router.canDismiss()) router.dismissAll();
+    })
+
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (hasClose && !isControllingDevice) player.play();

@@ -55,6 +55,14 @@ export default function useESPBT(deviceName: string) {
     };
   }, [deviceName]);
 
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextAppState => {
+      if (router.canDismiss()) router.dismissAll();
+    })
+
+    return () => sub.remove();
+  }, []);
+
   const handleScan = async () => {
     try {
       if (Platform.OS === "android") {
@@ -169,6 +177,7 @@ export default function useESPBT(deviceName: string) {
           finalChar,
         );
         await new Promise((resolve) => setTimeout(resolve, 150));
+
         BleManager.requestConnectionPriority(targetDevice.id, 1).then(() =>
           console.log("Priority given"),
         );
