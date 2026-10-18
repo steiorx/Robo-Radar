@@ -24,6 +24,8 @@ export type RadarContextProps = {
     handleSend: (data: ArrayBuffer) => Promise<void>;
     selectDevice: (targetDevice: Device) => Promise<void>;
     unselectDevice: () => Promise<void>;
+    minRSSI: number;
+    setMinRSSI: (rssi: number) => void;
   };
   carsData: {
     speeds: Record<string, number>;

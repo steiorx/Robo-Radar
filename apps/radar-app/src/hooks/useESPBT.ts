@@ -8,8 +8,6 @@ import licenses from "../../assets/licenses.json";
 import { useAudioPlayer } from "expo-audio";
 import audioSource from "../../assets/danger-alarm-sound-effect-meme.mp3";
 
-const minRSSI = -50;
-
 export default function useESPBT() {
   // Switch back to useState if not working
   const device = useRef<Device | null>(null);
@@ -22,6 +20,7 @@ export default function useESPBT() {
   const tempDevices = useRef<Device[]>([]);
 
   const [hasClose, setHasClose] = useState<boolean>(false);
+  const [minRSSI, setMinRSSI] = useState(-60);
   const player = useAudioPlayer(audioSource);
   player.loop = true;
 
@@ -72,24 +71,27 @@ export default function useESPBT() {
       }
     });
 
-    const interval = setInterval(toUnique, refreshInterval);
-
     return () => {
       discoverListener.remove();
       disconnectListener.remove();
-      clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(toUnique, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [minRSSI]);
 
   useEffect(() => {
     if (!isControllingDevice) unselectDevice();
   }, [isControllingDevice]);
 
   useEffect(() => {
-    const sub = AppState.addEventListener('change', nextAppState => {
+    const sub = AppState.addEventListener("change", (nextAppState) => {
       unselectDevice();
       if (router.canDismiss()) router.dismissAll();
-    })
+    });
 
     return () => sub.remove();
   }, []);
@@ -297,5 +299,7 @@ export default function useESPBT() {
     handleSend,
     selectDevice,
     unselectDevice,
+    minRSSI,
+    setMinRSSI,
   };
 }

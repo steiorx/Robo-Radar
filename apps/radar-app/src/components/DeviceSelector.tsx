@@ -4,7 +4,7 @@ import { Device } from "@shared/types";
 
 export default function DeviceSelector() {
   const {
-    bluetooth: { devices, handleScan, stopScan, isScanning, selectDevice },
+    bluetooth: { devices, handleScan, stopScan, isScanning, selectDevice, minRSSI, setMinRSSI },
     carsData: { speeds },
   } = useBluetooth();
 
@@ -84,6 +84,13 @@ export default function DeviceSelector() {
         <Text className="text-xl text-center">
           {isScanning ? "Stop scan" : "Scan"}
         </Text>
+      </Pressable>
+      <Pressable className="p-5 elevation-lg rounded-lg self-center bg-orange-900" onPress={() => {
+        let newRSSI = minRSSI + 10;
+        if (newRSSI >= -40) newRSSI = -80;
+        setMinRSSI(newRSSI);
+      }}>
+        <Text className="w-full text-center text-white">Trigger RSSI: {minRSSI}</Text>
       </Pressable>
     </View>
   );
