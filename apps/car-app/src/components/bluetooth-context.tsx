@@ -56,6 +56,10 @@ export function BluetoothProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  useEffect(() => {
+    setIsOverridden(false);
+  }, [deviceName]);
+
   function setDeviceName(newDeviceName: string) {
     _setDeviceName(newDeviceName);
     shouldSave.current = true;

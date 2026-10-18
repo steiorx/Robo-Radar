@@ -3,7 +3,7 @@
     "name": "Car App",
     "slug": "car-app",
     "scheme": "carapp",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.steiorx.carapp",
-      "versionCode": 6
+      "versionCode": 7
     },
     "web": {
       "favicon": "./assets/favicon.png",
